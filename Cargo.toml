@@ -1,0 +1,22 @@
+[package]
+name = "sonus"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ratatui = "0.30.2"
+rodio = "0.22.2"
+lofty = "0.25.1"
+toml = "1.1.5"
+serde = { version = "1.0.229", features = ["derive"] }
+color-eyre = "0.6.5"
+dirs = "7.0.0"
+walkdir = "2.5.0"
+unicode-width = "0.2.2"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
