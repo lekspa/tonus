@@ -1,8 +1,11 @@
 use color_eyre::eyre;
+use rodio::source::EmptyCallback;
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink};
 use std::fmt::Display;
 use std::fs::File;
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::timer::Timer;
 
@@ -19,7 +22,6 @@ impl Display for PlayerStatus {
             Self::Paused => write!(f, "⏸"),
             Self::Playing => write!(f, "►"),
             Self::Stopped => write!(f, "⏹"),
-            // Self::Stopped => write!(f, "◌"),
         }
     }
 }
@@ -28,6 +30,7 @@ pub struct Player {
     pub status: PlayerStatus,
     pub current_track_id: Option<usize>,
     pub timer: Timer,
+    playback_finished: Arc<AtomicBool>,
     player: rodio::Player,
     _handle: MixerDeviceSink,
 }
@@ -41,6 +44,7 @@ impl Player {
             status: PlayerStatus::Stopped,
             current_track_id: None,
             timer: Timer::new(),
+            playback_finished: Arc::new(AtomicBool::new(false)),
             player,
             _handle: handle,
         })
@@ -50,10 +54,17 @@ impl Player {
         let file = File::open(path)?;
         let source = Decoder::try_from(file)?;
 
+        let playback_finished = Arc::clone(&self.playback_finished);
+        let empty_callback = EmptyCallback::new(Box::new(move || {
+            playback_finished.store(true, Ordering::Release)
+        }));
+
+        self.playback_finished.store(false, Ordering::Relaxed);
         self.timer.reset();
 
         self.player.clear();
         self.player.append(source);
+        self.player.append(empty_callback);
         self.player.play();
 
         self.timer.start();
@@ -95,5 +106,12 @@ impl Player {
 
     pub fn progress(&self, duration: u64) -> f64 {
         (f64::from(self.timer.elapsed()) / duration as f64).clamp(0.0, 1.0)
+    }
+
+    pub fn check_playback_completion(&mut self) {
+        if self.playback_finished.load(Ordering::Acquire) {
+            self.timer.stop();
+            self.status = PlayerStatus::Stopped;
+        }
     }
 }

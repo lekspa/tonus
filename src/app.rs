@@ -43,6 +43,8 @@ impl App {
                 if event::poll(Duration::from_millis(16))? {
                     self.handle_events()?;
                 }
+
+                self.player.check_playback_completion();
             }
         }
 
