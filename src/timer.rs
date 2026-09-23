@@ -34,11 +34,16 @@ impl Timer {
 
         let handle = thread::spawn(move || {
             loop {
+                // NOTE: Ordering of sleeping the thread and breaking the loop matters.
+                // If changed, counter is incremented by 1s if playback is paused after 100ms of playing.
+                // FIXME: Playing and pausing the track multiple times causes desynchronization between
+                // actual playback time and timer elapsed time. Explore oportunity to sleep for n millis/nanos for higher presicion.
+                thread::sleep(Duration::from_secs(1));
+
                 if !running.load(Ordering::Acquire) {
                     break;
                 }
 
-                thread::sleep(Duration::from_secs(1));
                 elapsed.fetch_add(1, Ordering::Relaxed);
             }
         });
