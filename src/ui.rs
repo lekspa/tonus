@@ -21,11 +21,13 @@ const PLAYBACK_HEIGHT: u16 = 4;
 const VOLUME_WIDTH: u16 = 24;
 const TRACK_DURATION_WIDTH: u16 = 7;
 const LIBRARY_STATS_HEIGHT: u16 = 1;
+const KEYMAPS_HEIGHT: u16 = 1;
 
-const APP_CONSTRAINTS: [Constraint; 3] = [
+const APP_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Length(LIBRARY_STATS_HEIGHT),
     Constraint::Min(0),
     Constraint::Length(PLAYBACK_HEIGHT),
+    Constraint::Length(KEYMAPS_HEIGHT),
 ];
 const LIBRARY_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Min(24),
@@ -56,6 +58,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     render_library_stats(app, frame, rects[0]);
     render_library(app, frame, rects[1]);
     render_player(app, frame, rects[2]);
+    render_keymaps(app, frame, rects[3]);
 }
 
 fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
@@ -168,6 +171,17 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
 
     frame.render_widget(status, rects[0]);
     frame.render_widget(volume, rects[1]);
+}
+
+fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
+    let space_text = match app.player.status {
+        PlayerStatus::Paused => String::from("Resume"),
+        _ => String::from("Pause"),
+    };
+    let keymaps = format!("[Enter] Play | [Space] {space_text} | [+/-] Volume | [q] Quit");
+    let block = Block::new().padding(Padding::horizontal(2));
+
+    frame.render_widget(Paragraph::new(keymaps).block(block), area);
 }
 
 fn current_track_text(status: PlayerStatus, track: Option<&Track>) -> String {
