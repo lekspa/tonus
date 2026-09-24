@@ -56,7 +56,7 @@ impl Player {
 
         let playback_finished = Arc::clone(&self.playback_finished);
         let empty_callback = EmptyCallback::new(Box::new(move || {
-            playback_finished.store(true, Ordering::Release)
+            playback_finished.store(true, Ordering::Release);
         }));
 
         self.playback_finished.store(false, Ordering::Relaxed);

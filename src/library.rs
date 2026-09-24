@@ -6,13 +6,19 @@ use walkdir::WalkDir;
 
 const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
 
+#[derive(Default)]
 pub struct Library {
     pub tracks: Vec<Track>,
+    pub total_duration: u64,
 }
 
 impl Library {
     pub fn new() -> Self {
-        Self { tracks: Vec::new() }
+        Self::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.tracks.len()
     }
 
     pub fn load(&mut self, path: &Path) {
@@ -20,6 +26,8 @@ impl Library {
             .iter()
             .filter_map(Track::from_path)
             .collect::<Vec<Track>>();
+
+        self.total_duration = self.tracks.iter().map(|t| t.duration).sum();
     }
 
     fn scan(path: &Path) -> Vec<PathBuf> {

@@ -15,16 +15,21 @@ use crate::player::PlayerStatus;
 use crate::truncate::truncate;
 use crate::{app::App, track::Track};
 
-const STATUS_BAR_HEIGHT: u16 = 4;
+const PLAYBACK_HEIGHT: u16 = 4;
 const VOLUME_WIDTH: u16 = 24;
+const TRACK_DURATION_WIDTH: u16 = 7;
+const LIBRARY_STATS_HEIGHT: u16 = 1;
 
-const APP_CONSTRAINTS: [Constraint; 2] =
-    [Constraint::Min(0), Constraint::Length(STATUS_BAR_HEIGHT)];
+const APP_CONSTRAINTS: [Constraint; 3] = [
+    Constraint::Length(LIBRARY_STATS_HEIGHT),
+    Constraint::Min(0),
+    Constraint::Length(PLAYBACK_HEIGHT),
+];
 const LIBRARY_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Min(24),
     Constraint::Min(18),
     Constraint::Min(18),
-    Constraint::Length(7),
+    Constraint::Length(TRACK_DURATION_WIDTH),
 ];
 const PLAYER_CONSTRAINTS: [Constraint; 2] = [Constraint::Ratio(1, 2); 2];
 const CURRENT_TRACK_CONSTRAINTS: [Constraint; 2] =
@@ -46,8 +51,17 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     // Render an empty block to apply a global background
     frame.render_widget(block, frame.area());
 
-    render_library(app, frame, rects[0]);
-    render_player(app, frame, rects[1]);
+    render_library_stats(frame, app, rects[0]);
+    render_library(app, frame, rects[1]);
+    render_player(app, frame, rects[2]);
+}
+
+fn render_library_stats(frame: &mut Frame, app: &App, area: Rect) {
+    let block = Block::new().padding(Padding::horizontal(2));
+    let total = format::total_duration(app.library.total_duration);
+    let text = format!("Library: {} tracks • {} total", app.library.len(), total);
+
+    frame.render_widget(Paragraph::new(text).block(block), area);
 }
 
 fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
@@ -93,7 +107,7 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_stateful_widget(table, area, &mut app.table_state);
 }
 
-fn render_player(app: &mut App, frame: &mut Frame, area: Rect) {
+fn render_player(app: &App, frame: &mut Frame, area: Rect) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1));
