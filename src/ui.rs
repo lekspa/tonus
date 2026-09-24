@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout, Rect},
@@ -51,15 +53,26 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     // Render an empty block to apply a global background
     frame.render_widget(block, frame.area());
 
-    render_library_stats(frame, app, rects[0]);
+    render_library_stats(app, frame, rects[0]);
     render_library(app, frame, rects[1]);
     render_player(app, frame, rects[2]);
 }
 
-fn render_library_stats(frame: &mut Frame, app: &App, area: Rect) {
+fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
     let block = Block::new().padding(Padding::horizontal(2));
     let total = format::total_duration(app.library.total_duration);
-    let text = format!("Library: {} tracks • {} total", app.library.len(), total);
+
+    let text = match app.table_state.selected() {
+        Some(s) => format!(
+            "{}: {} tracks • {} total • Track {} / {}",
+            Span::styled("Library", Style::new().bold()),
+            app.library.len(),
+            total,
+            s.add(1),
+            app.library.len()
+        ),
+        None => format!("Library: {} tracks • {} total", app.library.len(), total),
+    };
 
     frame.render_widget(Paragraph::new(text).block(block), area);
 }
