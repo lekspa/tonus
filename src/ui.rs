@@ -67,7 +67,7 @@ fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
 
     let text = match app.table_state.selected() {
         Some(s) => format!(
-            "{}: {} tracks • {} total • Track {} / {}",
+            "{}: {} tracks • {} total • selected {}/{}",
             Span::styled("Library", Style::new().bold()),
             app.library.len(),
             total,
@@ -178,7 +178,9 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
         PlayerStatus::Paused => String::from("Resume"),
         _ => String::from("Pause"),
     };
-    let keymaps = format!("[Enter] Play | [Space] {space_text} | [+/-] Volume | [q] Quit");
+    let keymaps = format!(
+        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [+/-] Volume | [q] Quit"
+    );
     let block = Block::new().padding(Padding::horizontal(2));
 
     frame.render_widget(Paragraph::new(keymaps).block(block), area);

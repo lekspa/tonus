@@ -51,6 +51,12 @@ impl App {
         Ok(())
     }
 
+    pub fn current_track(&self) -> Option<&Track> {
+        self.player
+            .current_track_id
+            .map(|id| &self.library.tracks[id])
+    }
+
     fn terminal_width() -> u16 {
         crossterm::terminal::size().ok().map_or(80, |(w, _)| w)
     }
@@ -61,6 +67,8 @@ impl App {
                 KeyCode::Char('q') => self.quit(),
                 KeyCode::Char('j') | KeyCode::Down => self.table_state.select_next(),
                 KeyCode::Char('k') | KeyCode::Up => self.table_state.select_previous(),
+                KeyCode::Char('n') => self.play_next(),
+                KeyCode::Char('p') => self.play_prev(),
                 KeyCode::Char(' ') => self.player.toggle(),
                 KeyCode::Char('+') => self.player.volume_up(),
                 KeyCode::Char('-') => self.player.volume_down(),
@@ -76,17 +84,41 @@ impl App {
         self.should_quit = true;
     }
 
-    fn play(&mut self, selected_row: Option<usize>) {
-        if let Some(index) = selected_row {
+    fn play(&mut self, row: Option<usize>) {
+        if let Some(index) = row {
             let track = &self.library.tracks[index];
             let _ = self.player.play(&track.path);
             self.player.set_track(Some(index));
         }
     }
 
-    pub fn current_track(&self) -> Option<&Track> {
-        self.player
+    fn play_next(&mut self) {
+        let current_id = self
+            .player
             .current_track_id
-            .map(|id| &self.library.tracks[id])
+            .or_else(|| self.table_state.selected());
+
+        let next = match current_id {
+            Some(id) => (id + 1) % self.library.len(),
+            None => 0,
+        };
+
+        self.play(Some(next));
+        self.table_state.select(Some(next));
+    }
+
+    fn play_prev(&mut self) {
+        let current_id = self
+            .player
+            .current_track_id
+            .or_else(|| self.table_state.selected());
+
+        let prev = match current_id {
+            Some(id) => (id + self.library.len() - 1) % self.library.len(),
+            None => self.library.len().saturating_sub(1),
+        };
+
+        self.play(Some(prev));
+        self.table_state.select(Some(prev));
     }
 }
