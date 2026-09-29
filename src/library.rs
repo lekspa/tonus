@@ -46,5 +46,19 @@ impl Library {
             .collect::<HashMap<TrackId, Track>>();
         self.tracks_ids = self.tracks.keys().copied().collect();
         self.total_duration = self.tracks.values().map(|t| t.duration).sum();
+        self.sort();
+    }
+
+    /// Sorts `self.tracks_ids` in artist -> album -> title order
+    fn sort(&mut self) {
+        self.tracks_ids.sort_by(|a, b| {
+            let track_a = &self.tracks[a];
+            let track_b = &self.tracks[b];
+            track_a
+                .artist
+                .cmp(&track_b.artist)
+                .then_with(|| track_a.album.cmp(&track_b.album))
+                .then_with(|| track_a.title.cmp(&track_b.title))
+        });
     }
 }
