@@ -88,8 +88,8 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
         format!("{:>6}", format::duration(track.duration)),
     ];
 
-    let style = match app.player.current_track_id {
-        Some(id) if index == id => Style::new().fg(colors::FIERY_ORANGE),
+    let style = match app.current_track_position() {
+        Some(position) if index == position => Style::new().fg(colors::FIERY_ORANGE),
         Some(_) | None => Style::new(),
     };
 
@@ -100,7 +100,7 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
     let header_style = Style::new().bold().bg(colors::HEADER_BG);
     let header = Row::new(["Title", "Artist", "Album", "Length"]).style(header_style);
 
-    let highlight_fg = if app.table_state.selected() == app.player.current_track_id {
+    let highlight_fg = if app.selected_track_id == app.player.current_track_id {
         colors::FIERY_ORANGE
     } else {
         colors::HIGHLIGHT_FG
@@ -108,10 +108,13 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
 
     let rows = app
         .library
-        .tracks
+        .tracks_ids
         .iter()
         .enumerate()
-        .map(|(index, track)| table_row(index, track, app));
+        .map(|(index, track_id)| {
+            let track = &app.library.tracks[track_id];
+            table_row(index, track, app)
+        });
 
     let table = Table::new(rows, LIBRARY_CONSTRAINTS)
         .block(Block::bordered().border_type(BorderType::Rounded))

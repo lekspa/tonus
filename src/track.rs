@@ -1,10 +1,11 @@
 use color_eyre::eyre::Context;
 use lofty::prelude::*;
 use lofty::read_from_path;
-use std::path::PathBuf;
+use std::hash::Hash;
+use std::hash::{DefaultHasher, Hasher};
+use std::path::{Path, PathBuf};
 
-#[derive(Debug)]
-pub struct TrackId(pub PathBuf);
+pub type TrackId = u64;
 
 #[derive(Debug)]
 pub struct Track {
@@ -18,6 +19,8 @@ pub struct Track {
 
 impl Track {
     pub fn from_path(path: &PathBuf) -> Option<Self> {
+        let id = path_to_id(path);
+
         let tagged_file = read_from_path(path).wrap_err("failed to read track").ok()?;
 
         let tag = tagged_file
@@ -51,7 +54,7 @@ impl Track {
             .to_string();
 
         Some(Self {
-            id: TrackId(path.clone()),
+            id,
             path: path.clone(),
             title,
             artist,
@@ -59,4 +62,10 @@ impl Track {
             duration: tagged_file.properties().duration().as_secs(),
         })
     }
+}
+
+fn path_to_id(path: &Path) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    path.hash(&mut hasher);
+    hasher.finish()
 }

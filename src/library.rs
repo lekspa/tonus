@@ -1,4 +1,5 @@
-use crate::track::Track;
+use crate::track::{Track, TrackId};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::result::Result;
@@ -8,7 +9,8 @@ const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
 
 #[derive(Default)]
 pub struct Library {
-    pub tracks: Vec<Track>,
+    pub tracks: HashMap<TrackId, Track>,
+    pub tracks_ids: Vec<TrackId>,
     pub total_duration: u64,
 }
 
@@ -37,7 +39,12 @@ impl Library {
     }
 
     pub fn load(&mut self, path: &Path) {
-        self.tracks = scan(path).iter().filter_map(Track::from_path).collect();
-        self.total_duration = self.tracks.iter().map(|t| t.duration).sum();
+        self.tracks = scan(path)
+            .iter()
+            .filter_map(Track::from_path)
+            .map(|t| (t.id, t))
+            .collect::<HashMap<TrackId, Track>>();
+        self.tracks_ids = self.tracks.keys().copied().collect();
+        self.total_duration = self.tracks.values().map(|t| t.duration).sum();
     }
 }

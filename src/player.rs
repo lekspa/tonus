@@ -8,8 +8,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::timer::Timer;
+use crate::track::TrackId;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum PlayerStatus {
     Paused,
     Playing,
@@ -28,7 +29,7 @@ impl Display for PlayerStatus {
 
 pub struct Player {
     pub status: PlayerStatus,
-    pub current_track_id: Option<usize>,
+    pub current_track_id: Option<TrackId>,
     pub timer: Timer,
     playback_finished: Arc<AtomicBool>,
     player: rodio::Player,
@@ -86,7 +87,7 @@ impl Player {
         }
     }
 
-    pub fn set_track(&mut self, id: Option<usize>) {
+    pub fn set_track(&mut self, id: Option<TrackId>) {
         self.current_track_id = id;
     }
 
