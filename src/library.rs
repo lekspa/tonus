@@ -38,6 +38,10 @@ impl Library {
         self.tracks.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.tracks.is_empty()
+    }
+
     pub fn load(&mut self, path: &Path) {
         self.tracks = scan(path)
             .iter()

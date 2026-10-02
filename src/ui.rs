@@ -1,7 +1,7 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Flex, Layout, Rect},
-    style::Style,
+    layout::{Alignment, Constraint, Flex, Layout, Rect},
+    style::{Style, Stylize},
     symbols,
     text::{Line, Span},
     widgets::{
@@ -61,7 +61,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         render_library_stats(app, frame, rects[0]);
     }
 
-    render_library(app, frame, rects[1]);
+    if app.library.is_empty() {
+        render_library_placeholder(app, frame, rects[1]);
+    } else {
+        render_library(app, frame, rects[1]);
+    }
+
     render_player(app, frame, rects[2]);
     render_keymaps(app, frame, rects[3]);
 }
@@ -108,6 +113,21 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
     };
 
     Row::new(cells).style(style)
+}
+
+fn render_library_placeholder(_app: &App, frame: &mut Frame, area: Rect) {
+    let block = Block::bordered().border_type(BorderType::Rounded);
+    let centered_area = area.centered_vertically(Constraint::Length(2));
+
+    let lines = vec![
+        Line::from("No supported audio files were found in configured music directory."),
+        Line::from("Supported formats: mp3, mp4, wav, ogg, flac."),
+    ];
+
+    let paragraph = Paragraph::new(lines).alignment(Alignment::Center).bold();
+
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, centered_area);
 }
 
 fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
