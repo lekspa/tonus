@@ -29,10 +29,10 @@ struct Filter {
 }
 
 impl App {
-    pub fn new() -> eyre::Result<Self> {
+    pub fn new(config: Config) -> eyre::Result<Self> {
         Ok(Self {
             should_quit: false,
-            config: Config::default(),
+            config,
             library: Library::new(),
             player: Player::new()?,
             search: Search::new(),
@@ -43,9 +43,7 @@ impl App {
         })
     }
 
-    pub fn run(&mut self, terminal: &mut DefaultTerminal, config: Config) -> eyre::Result<()> {
-        self.config = config;
-
+    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> eyre::Result<()> {
         if let Some(directory) = &self.config.music_directory {
             self.library.load(directory);
             self.apply_filter();

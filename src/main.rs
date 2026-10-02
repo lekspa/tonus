@@ -17,5 +17,5 @@ use crate::app::App;
 fn main() -> Result<()> {
     color_eyre::install()?;
     let config = config::load()?;
-    ratatui::run(|terminal| App::new()?.run(terminal, config))
+    ratatui::run(|terminal| App::new(config)?.run(terminal))
 }
