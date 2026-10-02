@@ -4,6 +4,7 @@ mod config;
 mod format;
 mod library;
 mod player;
+mod search;
 mod timer;
 mod track;
 mod truncate;

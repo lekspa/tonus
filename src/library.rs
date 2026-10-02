@@ -9,8 +9,8 @@ const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
 
 #[derive(Default)]
 pub struct Library {
-    pub tracks: HashMap<TrackId, Track>,
-    pub tracks_ids: Vec<TrackId>,
+    tracks: HashMap<TrackId, Track>,
+    track_ids: Vec<TrackId>,
     pub total_duration: u64,
 }
 
@@ -44,14 +44,33 @@ impl Library {
             .filter_map(Track::from_path)
             .map(|t| (t.id, t))
             .collect::<HashMap<TrackId, Track>>();
-        self.tracks_ids = self.tracks.keys().copied().collect();
+        self.track_ids = self.tracks.keys().copied().collect();
         self.total_duration = self.tracks.values().map(|t| t.duration).sum();
         self.sort();
     }
 
-    /// Sorts `self.tracks_ids` in artist -> album -> title order
+    pub fn get_track(&self, id: TrackId) -> Option<&Track> {
+        self.tracks.get(&id)
+    }
+
+    /// Returns track IDs matching the query or all track IDs if query is empty.
+    pub fn filter(&self, query: &str) -> Vec<TrackId> {
+        let query = query.to_lowercase();
+
+        if query.is_empty() {
+            return self.track_ids.clone();
+        }
+
+        self.track_ids
+            .iter()
+            .filter(|&id| self.tracks[id].contains(&query))
+            .copied()
+            .collect()
+    }
+
+    /// Sorts `self.track_ids` in artist -> album -> title order
     fn sort(&mut self) {
-        self.tracks_ids.sort_by(|a, b| {
+        self.track_ids.sort_by(|a, b| {
             let track_a = &self.tracks[a];
             let track_b = &self.tracks[b];
             track_a

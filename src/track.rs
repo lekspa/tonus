@@ -62,6 +62,13 @@ impl Track {
             duration: tagged_file.properties().duration().as_secs(),
         })
     }
+
+    pub fn contains(&self, input: &str) -> bool {
+        let matched_title = self.title.to_lowercase().contains(input);
+        let matched_artist = self.artist.to_lowercase().contains(input);
+        let matched_album = self.album.to_lowercase().contains(input);
+        matched_title || matched_artist || matched_album
+    }
 }
 
 fn path_to_id(path: &Path) -> u64 {

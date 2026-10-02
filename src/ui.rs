@@ -1,11 +1,9 @@
-use std::ops::Add;
-
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout, Rect},
     style::Style,
     symbols,
-    text::Span,
+    text::{Line, Span},
     widgets::{
         Block, BorderType, Gauge, HighlightSpacing, LineGauge, Padding, Paragraph, Row, Table,
     },
@@ -39,6 +37,8 @@ const PLAYER_CONSTRAINTS: [Constraint; 2] = [Constraint::Ratio(1, 2); 2];
 const CURRENT_TRACK_CONSTRAINTS: [Constraint; 2] =
     [Constraint::Fill(1), Constraint::Length(VOLUME_WIDTH)];
 
+const SEARCH_PREFIX: &str = "Search: ";
+
 /// Computes track list table column widths exluding horizontal table borders(2 columns)
 pub fn compute_column_widths(width: u16) -> Vec<usize> {
     let area = Rect::new(0, 0, width, 1);
@@ -55,7 +55,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     // Render an empty block to apply a global background
     frame.render_widget(block, frame.area());
 
-    render_library_stats(app, frame, rects[0]);
+    if app.search.is_active() {
+        render_search(app, frame, rects[0]);
+    } else {
+        render_library_stats(app, frame, rects[0]);
+    }
+
     render_library(app, frame, rects[1]);
     render_player(app, frame, rects[2]);
     render_keymaps(app, frame, rects[3]);
@@ -64,19 +69,28 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
     let block = Block::new().padding(Padding::horizontal(2));
     let total = format::total_duration(app.library.total_duration);
+    let len = app.library.len();
+    let visible_len = app.visible_track_ids().len();
 
-    let text = match app.table_state.selected() {
-        Some(s) => format!(
-            "{}: {} tracks • {} total • selected {}/{}",
-            Span::styled("Library", Style::new().bold()),
-            app.library.len(),
-            total,
-            s.add(1),
-            app.library.len()
-        ),
-        None => format!("Library: {} tracks • {} total", app.library.len(), total),
-    };
+    let mut spans = Vec::new();
 
+    spans.push(Span::styled(
+        "Library: ",
+        Style::new().bold().fg(colors::FIERY_ORANGE),
+    ));
+    spans.push(Span::raw(format!("{len} tracks • {total} total")));
+
+    if let Some(s) = app.table_state.selected() {
+        spans.push(Span::raw(" • "));
+        spans.push(Span::raw(format!("selected {}/{}", s + 1, visible_len)));
+    }
+
+    if !app.search.is_empty() {
+        spans.push(Span::raw(" • "));
+        spans.push(Span::raw(format!("searching: \"{}\"", app.search.query())));
+    }
+
+    let text = Line::from(spans);
     frame.render_widget(Paragraph::new(text).block(block), area);
 }
 
@@ -88,9 +102,9 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
         format!("{:>6}", format::duration(track.duration)),
     ];
 
-    let style = match app.current_track_position() {
+    let style = match app.track_index(app.player.current_track_id) {
         Some(position) if index == position => Style::new().fg(colors::FIERY_ORANGE),
-        Some(_) | None => Style::new(),
+        _ => Style::new(),
     };
 
     Row::new(cells).style(style)
@@ -107,14 +121,11 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
     };
 
     let rows = app
-        .library
-        .tracks_ids
+        .visible_track_ids()
         .iter()
         .enumerate()
-        .map(|(index, track_id)| {
-            let track = &app.library.tracks[track_id];
-            table_row(index, track, app)
-        });
+        .filter_map(|(idx, &id)| app.library.get_track(id).map(|t| (idx, t)))
+        .map(|(index, track)| table_row(index, track, app));
 
     let table = Table::new(rows, LIBRARY_CONSTRAINTS)
         .block(Block::bordered().border_type(BorderType::Rounded))
@@ -182,11 +193,32 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
         _ => String::from("Pause"),
     };
     let keymaps = format!(
-        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [+/-] Volume | [q] Quit"
+        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [+/-] Volume | [/] Search | [q] Quit"
     );
     let block = Block::new().padding(Padding::horizontal(2));
 
     frame.render_widget(Paragraph::new(keymaps).block(block), area);
+}
+
+fn render_search(app: &App, frame: &mut Frame, area: Rect) {
+    let block_padding = 2;
+    let offset = (SEARCH_PREFIX.len() as u16) + block_padding;
+    let width = area.width.saturating_sub(offset + block_padding);
+    let scroll = app.search.visual_scroll(width as usize);
+
+    let text = Line::from(vec![
+        Span::styled(SEARCH_PREFIX, Style::new().bold().fg(colors::FIERY_ORANGE)),
+        Span::raw(app.search.query()),
+    ]);
+
+    let block = Block::new().padding(Padding::horizontal(2));
+    let input = Paragraph::new(text).scroll((0, scroll as u16)).block(block);
+
+    frame.render_widget(input, area);
+
+    // Position the cursor past the end of the input text
+    let x = app.search.visual_cursor().saturating_sub(scroll) + offset as usize;
+    frame.set_cursor_position((area.x + x as u16, area.y));
 }
 
 fn current_track_text(status: PlayerStatus, track: Option<&Track>) -> String {

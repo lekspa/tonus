@@ -51,7 +51,7 @@ impl Player {
         })
     }
 
-    pub fn play(&mut self, path: &Path) -> eyre::Result {
+    pub fn play(&mut self, path: &Path) -> eyre::Result<()> {
         let file = File::open(path)?;
         let source = Decoder::try_from(file)?;
 
