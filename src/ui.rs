@@ -10,6 +10,7 @@ use ratatui::{
 };
 
 use crate::colors;
+use crate::config::config_file_path;
 use crate::format;
 use crate::player::PlayerStatus;
 use crate::truncate::truncate;
@@ -69,6 +70,44 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 
     render_player(app, frame, rects[2]);
     render_keymaps(app, frame, rects[3]);
+}
+
+pub fn render_welcome_screen(frame: &mut Frame) {
+    let area = frame.area();
+    let centered_area = area.centered_vertically(Constraint::Length(7));
+    let block = Block::bordered().border_type(BorderType::Rounded);
+    let config_file = config_file_path().unwrap_or_else(|| "~/.config/sonus/config.toml".into());
+
+    let lines = vec![
+        Line::from(Span::styled(
+            "Welcome to Sonus!",
+            Style::new().bold().fg(colors::FIERY_ORANGE),
+        )),
+        Line::from(""),
+        Line::from("Player could not find your music directory."),
+        Line::from(vec![
+            Span::raw("Add this to your config: "),
+            Span::styled(
+                "music_directory = \"/path/to/music\"",
+                Style::new().bold().fg(colors::LIGHTNING_YELLOW),
+            ),
+            Span::raw("."),
+        ]),
+        Line::from(vec![
+            Span::raw("Config file: "),
+            Span::styled(config_file.display().to_string(), Style::new().italic()),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("[q]", Style::new().bold()),
+            Span::raw(" Quit"),
+        ]),
+    ];
+
+    let paragraph = Paragraph::new(lines).alignment(Alignment::Center);
+
+    frame.render_widget(block, area);
+    frame.render_widget(paragraph, centered_area);
 }
 
 fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {

@@ -27,7 +27,7 @@ pub fn load() -> eyre::Result<Config> {
     Ok(config)
 }
 
-fn config_file_path() -> Option<PathBuf> {
+pub fn config_file_path() -> Option<PathBuf> {
     dirs::config_dir().map(|path| path.join("sonus").join("config.toml"))
 }
 

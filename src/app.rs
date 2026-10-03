@@ -57,6 +57,8 @@ impl App {
 
                 self.player.check_playback_completion();
             }
+        } else {
+            self.welcome_screen(terminal)?;
         }
 
         Ok(())
@@ -126,6 +128,21 @@ impl App {
         }
 
         Ok(())
+    }
+
+    fn welcome_screen(&mut self, terminal: &mut DefaultTerminal) -> eyre::Result<()> {
+        loop {
+            terminal.draw(ui::render_welcome_screen)?;
+
+            if let event::Event::Key(key) = crossterm::event::read()? {
+                if key.kind == event::KeyEventKind::Press {
+                    match key.code {
+                        KeyCode::Char('q') => return Ok(()),
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
     fn quit(&mut self) {
