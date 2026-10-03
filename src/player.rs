@@ -20,8 +20,8 @@ pub enum PlayerStatus {
 impl Display for PlayerStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Paused => write!(f, "⏸"),
-            Self::Playing => write!(f, "►"),
+            Self::Playing => write!(f, "⏸"),
+            Self::Paused => write!(f, "►"),
             Self::Stopped => write!(f, "⏹"),
         }
     }
