@@ -2,7 +2,7 @@ use color_eyre::eyre::Result;
 use serde::Deserialize;
 use std::fs;
 use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct Config {
@@ -13,6 +13,11 @@ pub struct Config {
 pub fn load() -> Result<Config> {
     let mut config = load_config(config_file_path())?;
     let system = dirs::audio_dir().filter(|d| d.is_dir());
+
+    if let Some(path) = &config.music_directory {
+        config.music_directory = Some(expand_tilde(path));
+    }
+
     config.music_directory = config.music_directory.or(system);
     Ok(config)
 }
@@ -28,7 +33,38 @@ fn load_config(path: Option<PathBuf>) -> Result<Config> {
 
     match fs::read_to_string(&path) {
         Ok(contents) => Ok(toml::from_str::<Config>(&contents)?),
-        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(Config::default()),
-        Err(e) => return Err(e.into()),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(Config::default()),
+        Err(e) => Err(e.into()),
+    }
+}
+
+fn expand_tilde(path: &Path) -> PathBuf {
+    let path_str = path.to_string_lossy();
+
+    if let Some(rest) = path_str
+        .strip_prefix('~')
+        .map(|s| s.trim_start_matches('/'))
+        .map(|s| s.trim_end_matches('/'))
+        && let Some(home) = dirs::home_dir()
+    {
+        return home.join(rest);
+    }
+
+    path.to_path_buf()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tilde_expansion() {
+        let home = dirs::home_dir().expect("home directory should exist");
+
+        assert_eq!(expand_tilde(Path::new("~")), home);
+        assert_eq!(expand_tilde(Path::new("~/")), home);
+        assert_eq!(expand_tilde(Path::new("~/Music")), home.join("Music"));
+        assert_eq!(expand_tilde(Path::new("~/Music/")), home.join("Music"));
+        assert_eq!(expand_tilde(Path::new("/home")), Path::new("/home"));
     }
 }
