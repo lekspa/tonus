@@ -4,6 +4,7 @@ use ratatui::crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{DefaultTerminal, widgets::TableState};
 use std::time::Duration;
 
+use crate::cli::Cli;
 use crate::config::Config;
 use crate::library::Library;
 use crate::player::Player;
@@ -13,6 +14,8 @@ use crate::ui;
 
 pub struct App {
     pub should_quit: bool,
+    #[allow(dead_code)]
+    pub cli: Cli,
     pub config: Config,
     pub library: Library,
     pub player: Player,
@@ -29,9 +32,10 @@ struct Filter {
 }
 
 impl App {
-    pub fn new(config: Config) -> eyre::Result<Self> {
+    pub fn new(config: Config, cli: Cli) -> eyre::Result<Self> {
         Ok(Self {
             should_quit: false,
+            cli,
             config,
             library: Library::new(),
             player: Player::new()?,

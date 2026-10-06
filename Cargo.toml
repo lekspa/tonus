@@ -14,6 +14,7 @@ dirs = "7.0.0"
 walkdir = "2.5.0"
 unicode-width = "0.2.2"
 tui-input = "0.15.5"
+clap = { version = "4.6.7", features = ["derive"] }
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

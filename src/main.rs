@@ -1,4 +1,5 @@
 mod app;
+mod cli;
 mod colors;
 mod config;
 mod format;
@@ -10,12 +11,14 @@ mod track;
 mod truncate;
 mod ui;
 
+use clap::Parser;
 use color_eyre::eyre::Result;
 
-use crate::app::App;
+use crate::{app::App, cli::Cli};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
-    let config = config::load()?;
-    ratatui::run(|terminal| App::new(config)?.run(terminal))
+    let cli = Cli::parse();
+    let config = config::load(cli.clone())?;
+    ratatui::run(|terminal| App::new(config, cli)?.run(terminal))
 }

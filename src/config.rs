@@ -4,21 +4,24 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
+use crate::cli::Cli;
+
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub music_directory: Option<PathBuf>,
 }
 
-pub fn load() -> Result<Config> {
+pub fn load(cli: Cli) -> Result<Config> {
     let mut config = load_config(config_file_path())?;
     let system = dirs::audio_dir().filter(|d| d.is_dir());
 
-    if let Some(path) = &config.music_directory {
-        config.music_directory = Some(expand_tilde(path));
-    }
+    config.music_directory = cli
+        .music_directory
+        .or(config.music_directory)
+        .or(system)
+        .map(|path| expand_tilde(&path));
 
-    config.music_directory = config.music_directory.or(system);
     Ok(config)
 }
 
