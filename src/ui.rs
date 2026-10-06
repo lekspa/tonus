@@ -210,20 +210,23 @@ fn render_player(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
-    let (ratio, progress_label) = match track {
-        Some(t) => (
-            app.player.progress(t.duration),
-            format::progress(app.player.timer.elapsed().into(), t.duration),
-        ),
-        None => (0.0, String::from("0:00/0:00")),
-    };
+    let elapsed = app.player.timer.elapsed();
+    let (ratio, label) = track.map_or_else(
+        || (0.0, String::from("0:00/0:00")),
+        |t| {
+            (
+                app.player.progress(t.duration),
+                format::progress(elapsed.into(), t.duration),
+            )
+        },
+    );
 
     let style = Style::new().fg(colors::HIGHLIGHT_BG).bold();
 
     let progress = Gauge::default()
         .ratio(ratio)
         .use_unicode(true)
-        .label(Span::styled(progress_label, style))
+        .label(Span::styled(label, style))
         .gauge_style(Style::new().fg(colors::FIERY_ORANGE).bg(colors::HEADER_BG));
 
     frame.render_widget(progress, area);
@@ -260,7 +263,9 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_search(app: &App, frame: &mut Frame, area: Rect) {
+    // Terminal dimensions never exceed u16::MAX (65535 pixels)
     let block_padding = 2;
+    #[allow(clippy::cast_possible_truncation)]
     let offset = (SEARCH_PREFIX.len() as u16) + block_padding;
     let width = area.width.saturating_sub(offset + block_padding);
     let scroll = app.search.visual_scroll(width as usize);
@@ -271,18 +276,22 @@ fn render_search(app: &App, frame: &mut Frame, area: Rect) {
     ]);
 
     let block = Block::new().padding(Padding::horizontal(2));
+    // Scroll is bounded by terminal width, which fits in u16
+    #[allow(clippy::cast_possible_truncation)]
     let input = Paragraph::new(text).scroll((0, scroll as u16)).block(block);
 
     frame.render_widget(input, area);
 
     // Position the cursor past the end of the input text
     let x = app.search.visual_cursor().saturating_sub(scroll) + offset as usize;
+    // Cursor coordinate fits in u16 (same bound as terminal area.x)
+    #[allow(clippy::cast_possible_truncation)]
     frame.set_cursor_position((area.x + x as u16, area.y));
 }
 
 fn current_track_text(status: PlayerStatus, track: Option<&Track>) -> String {
-    match track {
-        Some(t) => format!("{} {} - {}", status, t.title, t.artist),
-        None => String::from("○ Select a track to play"),
-    }
+    track.map_or_else(
+        || String::from("○ Select a track to play"),
+        |t| format!("{} {} - {}", status, t.title, t.artist),
+    )
 }

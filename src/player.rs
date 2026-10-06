@@ -105,6 +105,7 @@ impl Player {
         self.player.set_volume(value);
     }
 
+    #[allow(clippy::cast_precision_loss)]
     pub fn progress(&self, duration: u64) -> f64 {
         (f64::from(self.timer.elapsed()) / duration as f64).clamp(0.0, 1.0)
     }

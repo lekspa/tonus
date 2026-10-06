@@ -1,4 +1,4 @@
-use color_eyre::eyre;
+use color_eyre::eyre::Result;
 use ratatui::crossterm;
 use ratatui::crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{DefaultTerminal, widgets::TableState};
@@ -32,7 +32,7 @@ struct Filter {
 }
 
 impl App {
-    pub fn new(config: Config, cli: Cli) -> eyre::Result<Self> {
+    pub fn new(config: Config, cli: Cli) -> Result<Self> {
         Ok(Self {
             should_quit: false,
             cli,
@@ -47,7 +47,7 @@ impl App {
         })
     }
 
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> eyre::Result<()> {
+    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         if let Some(directory) = &self.config.music_directory {
             self.library.load(directory);
             self.apply_filter();
@@ -92,7 +92,7 @@ impl App {
         crossterm::terminal::size().ok().map_or(80, |(w, _)| w)
     }
 
-    fn handle_events(&mut self) -> eyre::Result<()> {
+    fn handle_events(&mut self) -> Result<()> {
         let event = event::read()?;
 
         match event {
@@ -134,16 +134,16 @@ impl App {
         Ok(())
     }
 
-    fn welcome_screen(&mut self, terminal: &mut DefaultTerminal) -> eyre::Result<()> {
+    fn welcome_screen(&self, terminal: &mut DefaultTerminal) -> Result<()> {
         loop {
             terminal.draw(ui::render_welcome_screen)?;
 
-            if let event::Event::Key(key) = crossterm::event::read()? {
-                if key.kind == event::KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Char('q') => return Ok(()),
-                        _ => {}
-                    }
+            if let event::Event::Key(key) = crossterm::event::read()?
+                && key.kind == event::KeyEventKind::Press
+            {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    _ => {}
                 }
             }
         }
