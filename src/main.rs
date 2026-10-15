@@ -2,6 +2,7 @@ mod app;
 mod cli;
 mod colors;
 mod config;
+mod filter;
 mod format;
 mod library;
 mod player;

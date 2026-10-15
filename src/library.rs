@@ -14,21 +14,6 @@ pub struct Library {
     pub total_duration: u64,
 }
 
-fn is_supported_codec(file: &Path) -> bool {
-    file.extension()
-        .and_then(OsStr::to_str)
-        .is_some_and(|extension| SUPPORTED_CODECS.contains(&extension))
-}
-
-fn scan(path: &Path) -> Vec<PathBuf> {
-    WalkDir::new(path)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|e| !e.path().is_dir() && is_supported_codec(e.path()))
-        .map(|e| e.path().to_path_buf())
-        .collect()
-}
-
 impl Library {
     pub fn new() -> Self {
         Self::default()
@@ -40,6 +25,10 @@ impl Library {
 
     pub fn is_empty(&self) -> bool {
         self.tracks.is_empty()
+    }
+
+    pub fn track_ids(&self) -> &[TrackId] {
+        &self.track_ids
     }
 
     pub fn load(&mut self, path: &Path) {
@@ -57,21 +46,6 @@ impl Library {
         self.tracks.get(&id)
     }
 
-    /// Returns track IDs matching the query or all track IDs if query is empty.
-    pub fn filter(&self, query: &str) -> Vec<TrackId> {
-        let query = query.to_lowercase();
-
-        if query.is_empty() {
-            return self.track_ids.clone();
-        }
-
-        self.track_ids
-            .iter()
-            .filter(|&id| self.tracks[id].contains(&query))
-            .copied()
-            .collect()
-    }
-
     /// Sorts `self.track_ids` in artist -> album -> title order
     fn sort(&mut self) {
         self.track_ids.sort_by(|a, b| {
@@ -84,4 +58,19 @@ impl Library {
                 .then_with(|| track_a.title.cmp(&track_b.title))
         });
     }
+}
+
+fn is_supported_codec(file: &Path) -> bool {
+    file.extension()
+        .and_then(OsStr::to_str)
+        .is_some_and(|extension| SUPPORTED_CODECS.contains(&extension))
+}
+
+fn scan(path: &Path) -> Vec<PathBuf> {
+    WalkDir::new(path)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|e| !e.path().is_dir() && is_supported_codec(e.path()))
+        .map(|e| e.path().to_path_buf())
+        .collect()
 }

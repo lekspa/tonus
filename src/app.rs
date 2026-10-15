@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use crate::cli::Cli;
 use crate::config::Config;
+use crate::filter::Filter;
 use crate::library::Library;
 use crate::player::Player;
 use crate::search::Search;
@@ -23,12 +24,7 @@ pub struct App {
     pub table_state: TableState,
     pub selected_track_id: Option<TrackId>,
     pub column_widths: Vec<usize>,
-    filter: Option<Filter>,
-}
-
-struct Filter {
-    query: String,
-    result: Vec<TrackId>,
+    filter: Filter,
 }
 
 impl App {
@@ -43,7 +39,7 @@ impl App {
             table_state: TableState::new(),
             selected_track_id: None,
             column_widths: ui::compute_column_widths(Self::terminal_width()),
-            filter: None,
+            filter: Filter::default(),
         })
     }
 
@@ -70,10 +66,7 @@ impl App {
 
     /// Returns all track IDs that are rendered inside the table.
     pub fn visible_track_ids(&self) -> &[TrackId] {
-        match &self.filter {
-            Some(state) => &state.result,
-            None => &[],
-        }
+        self.filter.result()
     }
 
     pub fn current_track(&self) -> Option<&Track> {
@@ -216,16 +209,8 @@ impl App {
     }
 
     fn apply_filter(&mut self) {
-        let query = self.search.query().to_string();
-        let result = self.library.filter(&query);
-        self.filter = Some(Filter { query, result });
-    }
-
-    fn is_filter_stale(&self) -> bool {
         let query = self.search.query();
-        self.filter
-            .as_ref()
-            .is_none_or(|state| state.query != query)
+        self.filter.apply(query, &self.library);
     }
 
     fn sync_selection(&mut self) {
@@ -249,7 +234,9 @@ impl App {
     }
 
     fn refresh_filter_if_stale(&mut self) {
-        if self.is_filter_stale() {
+        let query = self.search.query();
+
+        if self.filter.is_stale(query) {
             self.apply_filter();
             self.sync_selection();
         }
