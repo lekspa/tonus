@@ -75,9 +75,9 @@ impl App {
             .and_then(|id| self.library.get_track(id))
     }
 
-    /// Returns the index of `track_id` in visible track list (filtered or all).
-    pub fn track_index(&self, track_id: Option<TrackId>) -> Option<usize> {
-        track_id.and_then(|id| self.visible_track_ids().iter().position(|&x| x == id))
+    /// Returns the index of track in visible track list (filtered or all).
+    pub fn index_of_track(&self, track_id: Option<TrackId>) -> Option<usize> {
+        index_of(track_id, self.filter.result())
     }
 
     // TODO: Recompute on terminal resize
@@ -95,10 +95,12 @@ impl App {
                         KeyCode::Esc => {
                             self.search.reset();
                             self.refresh_filter_if_stale();
+                            self.reshuffle();
                         }
                         KeyCode::Enter => {
                             self.search.set_active(false);
                             self.refresh_filter_if_stale();
+                            self.reshuffle();
                         }
                         _ => {
                             self.search.handle_event(&event);
@@ -112,6 +114,7 @@ impl App {
                         KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
                         KeyCode::Char('n') => self.play_next(),
                         KeyCode::Char('p') => self.play_prev(),
+                        KeyCode::Char('s') => self.toggle_shuffle(),
                         KeyCode::Char(' ') => self.player.toggle(),
                         KeyCode::Char('+') => self.player.volume_up(),
                         KeyCode::Char('-') => self.player.volume_down(),
@@ -181,31 +184,41 @@ impl App {
     }
 
     fn play_next(&mut self) {
-        let track_ids = self.visible_track_ids();
-        if track_ids.is_empty() {
+        let queue = self.playback_queue();
+        if queue.is_empty() {
             return;
         }
         let current = self.player.current_track_id.or(self.selected_track_id);
-        let index = next_index(self.track_index(current), track_ids.len());
-        let next = track_ids[index];
+        let index = next_index(index_of(current, queue), queue.len());
+        let next = Some(queue[index]);
 
-        self.play(Some(next));
-        self.table_state.select(Some(index));
-        self.selected_track_id = Some(next);
+        self.play(next);
+        self.table_state.select(self.index_of_track(next));
+        self.selected_track_id = next;
     }
 
     fn play_prev(&mut self) {
-        let track_ids = self.visible_track_ids();
-        if track_ids.is_empty() {
+        let queue = self.playback_queue();
+        if queue.is_empty() {
             return;
         }
         let current = self.player.current_track_id.or(self.selected_track_id);
-        let index = prev_index(self.track_index(current), track_ids.len());
-        let prev = track_ids[index];
+        let index = prev_index(index_of(current, queue), queue.len());
+        let prev = Some(queue[index]);
 
-        self.play(Some(prev));
-        self.table_state.select(Some(index));
-        self.selected_track_id = Some(prev);
+        self.play(prev);
+        self.table_state.select(self.index_of_track(prev));
+        self.selected_track_id = prev;
+    }
+
+    /// Returns the list of shuffled `track_ids` if shuffle is enabled.
+    /// Otherwise, returns the list of `track_ids` rendered inside the table widget.
+    fn playback_queue(&self) -> &[TrackId] {
+        if self.player.shuffle {
+            &self.player.shuffled_track_ids
+        } else {
+            self.filter.result()
+        }
     }
 
     fn apply_filter(&mut self) {
@@ -227,7 +240,7 @@ impl App {
             .filter(|id| track_ids.contains(id))
             .unwrap_or_else(|| track_ids[0]);
 
-        let index = self.track_index(Some(track_id)).unwrap_or(0);
+        let index = self.index_of_track(Some(track_id)).unwrap_or(0);
 
         self.table_state.select(Some(index));
         self.selected_track_id = Some(track_id);
@@ -241,6 +254,24 @@ impl App {
             self.sync_selection();
         }
     }
+
+    fn toggle_shuffle(&mut self) {
+        let track_ids = self.filter.result();
+
+        if self.player.shuffle {
+            self.player.set_shuffle(false);
+            self.player.shuffled_track_ids = Vec::new();
+        } else {
+            self.player.shuffle_track_ids(track_ids);
+            self.player.set_shuffle(true);
+        }
+    }
+
+    fn reshuffle(&mut self) {
+        if self.player.shuffle {
+            self.player.shuffle_track_ids(self.filter.result());
+        }
+    }
 }
 /// Returns the next index from current position not exceeding the `len`.
 /// Caller must guard against `len` being 0.
@@ -252,4 +283,9 @@ fn next_index(current: Option<usize>, len: usize) -> usize {
 /// Caller must guard against `len` being 0.
 fn prev_index(current: Option<usize>, len: usize) -> usize {
     current.map_or_else(|| len.saturating_sub(1), |index| (index + len - 1) % len)
+}
+
+/// Returns index of element in a given slice.
+fn index_of<T: PartialEq>(element: Option<T>, slice: &[T]) -> Option<usize> {
+    element.and_then(|e| slice.iter().position(|x| *x == e))
 }

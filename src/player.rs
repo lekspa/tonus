@@ -1,4 +1,5 @@
 use color_eyre::eyre;
+use rand::seq::SliceRandom;
 use rodio::source::EmptyCallback;
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink};
 use std::fmt::Display;
@@ -30,7 +31,9 @@ impl Display for PlayerStatus {
 pub struct Player {
     pub status: PlayerStatus,
     pub current_track_id: Option<TrackId>,
+    pub shuffled_track_ids: Vec<TrackId>,
     pub timer: Timer,
+    pub shuffle: bool,
     playback_finished: Arc<AtomicBool>,
     player: rodio::Player,
     _handle: MixerDeviceSink,
@@ -44,7 +47,9 @@ impl Player {
         Ok(Self {
             status: PlayerStatus::Stopped,
             current_track_id: None,
+            shuffled_track_ids: Vec::new(),
             timer: Timer::new(),
+            shuffle: false,
             playback_finished: Arc::new(AtomicBool::new(false)),
             player,
             _handle: handle,
@@ -115,5 +120,16 @@ impl Player {
             self.timer.stop();
             self.status = PlayerStatus::Stopped;
         }
+    }
+
+    pub fn shuffle_track_ids(&mut self, track_ids: &[TrackId]) {
+        let mut rng = rand::rng();
+        let mut track_ids = track_ids.to_owned();
+        track_ids.shuffle(&mut rng);
+        self.shuffled_track_ids = track_ids;
+    }
+
+    pub fn set_shuffle(&mut self, value: bool) {
+        self.shuffle = value;
     }
 }

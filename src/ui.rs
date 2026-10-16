@@ -21,6 +21,7 @@ const VOLUME_WIDTH: u16 = 24;
 const TRACK_DURATION_WIDTH: u16 = 7;
 const LIBRARY_STATS_HEIGHT: u16 = 1;
 const KEYMAPS_HEIGHT: u16 = 1;
+const SHUFFLE_WIDTH: u16 = 15;
 
 const APP_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Length(LIBRARY_STATS_HEIGHT),
@@ -35,8 +36,11 @@ const LIBRARY_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Length(TRACK_DURATION_WIDTH),
 ];
 const PLAYER_CONSTRAINTS: [Constraint; 2] = [Constraint::Ratio(1, 2); 2];
-const CURRENT_TRACK_CONSTRAINTS: [Constraint; 2] =
-    [Constraint::Fill(1), Constraint::Length(VOLUME_WIDTH)];
+const CURRENT_TRACK_CONSTRAINTS: [Constraint; 3] = [
+    Constraint::Fill(1),
+    Constraint::Length(SHUFFLE_WIDTH),
+    Constraint::Length(VOLUME_WIDTH),
+];
 
 const SEARCH_PREFIX: &str = "Search: ";
 
@@ -146,7 +150,7 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
         format!("{:>6}", format::duration(track.duration)),
     ];
 
-    let style = match app.track_index(app.player.current_track_id) {
+    let style = match app.index_of_track(app.player.current_track_id) {
         Some(position) if index == position => Style::new().fg(colors::FIERY_ORANGE),
         _ => Style::new(),
     };
@@ -240,13 +244,19 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
     let status = Paragraph::new(current_track_text(app.player.status, track));
 
     let volume = LineGauge::default()
-        .label(format!("Volume {}%", app.player.volume()))
+        .label(format!("Volume: {}%", app.player.volume()))
         .filled_style(Style::new().fg(colors::LIGHTNING_YELLOW))
         .filled_symbol(symbols::line::HORIZONTAL)
         .ratio(f64::from(app.player.volume()) / 100.0);
 
+    let shuffle = Span::raw(format!(
+        "Shuffle: {} •",
+        if app.player.shuffle { "on " } else { "off" }
+    ));
+
     frame.render_widget(status, rects[0]);
-    frame.render_widget(volume, rects[1]);
+    frame.render_widget(shuffle, rects[1]);
+    frame.render_widget(volume, rects[2]);
 }
 
 fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
@@ -255,7 +265,7 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
         _ => String::from("Pause"),
     };
     let keymaps = format!(
-        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [+/-] Volume | [/] Search | [q] Quit"
+        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [s] Shuffle | [+/-] Volume | [/] Search | [q] Quit"
     );
     let block = Block::new().padding(Padding::horizontal(2));
 
