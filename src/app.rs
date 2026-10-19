@@ -8,7 +8,7 @@ use crate::cli::Cli;
 use crate::config::Config;
 use crate::filter::Filter;
 use crate::library::Library;
-use crate::player::Player;
+use crate::player::{Player, PlayerStatus, Repeat};
 use crate::search::Search;
 use crate::track::{Track, TrackId};
 use crate::ui;
@@ -55,13 +55,32 @@ impl App {
                     self.handle_events()?;
                 }
 
-                self.player.check_playback_completion();
+                if self.player.is_playback_finished() {
+                    self.player.on_playback_completion();
+                    self.advance_to_next_track();
+                }
             }
         } else {
             self.welcome_screen(terminal)?;
         }
 
         Ok(())
+    }
+
+    fn advance_to_next_track(&mut self) {
+        match self.player.repeat {
+            Repeat::Off => {
+                let queue = self.playback_queue();
+                let current = self.player.current_track_id;
+                // Should not advance to first track after playing the last
+                if index_of(current, queue).is_some_and(|i| i + 1 < queue.len()) {
+                    self.play_next()
+                }
+            }
+            Repeat::All => self.play_next(),
+            // TODO: avoid redecoding the track again
+            Repeat::One => self.play(self.player.current_track_id),
+        }
     }
 
     /// Returns all track IDs that are rendered inside the table.
@@ -114,8 +133,9 @@ impl App {
                         KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
                         KeyCode::Char('n') => self.play_next(),
                         KeyCode::Char('p') => self.play_prev(),
+                        KeyCode::Char(' ') => self.toggle(),
                         KeyCode::Char('s') => self.toggle_shuffle(),
-                        KeyCode::Char(' ') => self.player.toggle(),
+                        KeyCode::Char('r') => self.player.toggle_repeat(),
                         KeyCode::Char('+') => self.player.volume_up(),
                         KeyCode::Char('-') => self.player.volume_down(),
                         KeyCode::Char('/') => self.search.set_active(true),
@@ -178,7 +198,7 @@ impl App {
         let Some(track) = self.library.get_track(id) else {
             return;
         };
-        //TODO: handle error
+        //TODO: handle error; should play function set `player.current_track_id` instead of app?
         let _ = self.player.play(&track.path);
         self.player.set_track(Some(track.id));
     }
@@ -252,6 +272,15 @@ impl App {
         if self.filter.is_stale(query) {
             self.apply_filter();
             self.sync_selection();
+        }
+    }
+
+    /// Restarts the current track if player is stopped, otherwise toggles the playback.
+    fn toggle(&mut self) {
+        if self.player.status == PlayerStatus::Stopped {
+            self.play(self.player.current_track_id);
+        } else {
+            self.player.toggle()
         }
     }
 

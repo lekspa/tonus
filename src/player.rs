@@ -1,4 +1,4 @@
-use color_eyre::eyre;
+use color_eyre::eyre::Result;
 use rand::seq::SliceRandom;
 use rodio::source::EmptyCallback;
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink};
@@ -18,6 +18,12 @@ pub enum PlayerStatus {
     Stopped,
 }
 
+pub enum Repeat {
+    Off,
+    All,
+    One,
+}
+
 impl Display for PlayerStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -28,19 +34,30 @@ impl Display for PlayerStatus {
     }
 }
 
+impl Display for Repeat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Off => write!(f, "off"),
+            Self::All => write!(f, "all"),
+            Self::One => write!(f, "one"),
+        }
+    }
+}
+
 pub struct Player {
     pub status: PlayerStatus,
     pub current_track_id: Option<TrackId>,
     pub shuffled_track_ids: Vec<TrackId>,
     pub timer: Timer,
     pub shuffle: bool,
+    pub repeat: Repeat,
     playback_finished: Arc<AtomicBool>,
     player: rodio::Player,
     _handle: MixerDeviceSink,
 }
 
 impl Player {
-    pub fn new() -> eyre::Result<Self> {
+    pub fn new() -> Result<Self> {
         let handle = DeviceSinkBuilder::open_default_sink()?;
         let player = rodio::Player::connect_new(handle.mixer());
 
@@ -50,13 +67,18 @@ impl Player {
             shuffled_track_ids: Vec::new(),
             timer: Timer::new(),
             shuffle: false,
+            repeat: Repeat::Off,
             playback_finished: Arc::new(AtomicBool::new(false)),
             player,
             _handle: handle,
         })
     }
 
-    pub fn play(&mut self, path: &Path) -> eyre::Result<()> {
+    pub fn is_playback_finished(&self) -> bool {
+        self.playback_finished.load(Ordering::Relaxed)
+    }
+
+    pub fn play(&mut self, path: &Path) -> Result<()> {
         let file = File::open(path)?;
         let source = Decoder::try_from(file)?;
 
@@ -115,11 +137,11 @@ impl Player {
         (f64::from(self.timer.elapsed()) / duration as f64).clamp(0.0, 1.0)
     }
 
-    pub fn check_playback_completion(&mut self) {
-        if self.playback_finished.load(Ordering::Acquire) {
-            self.timer.stop();
-            self.status = PlayerStatus::Stopped;
-        }
+    pub fn on_playback_completion(&mut self) {
+        self.playback_finished.store(false, Ordering::Release);
+        self.timer.stop();
+        self.timer.reset();
+        self.status = PlayerStatus::Stopped;
     }
 
     pub fn shuffle_track_ids(&mut self, track_ids: &[TrackId]) {
@@ -131,5 +153,13 @@ impl Player {
 
     pub fn set_shuffle(&mut self, value: bool) {
         self.shuffle = value;
+    }
+
+    pub fn toggle_repeat(&mut self) {
+        self.repeat = match self.repeat {
+            Repeat::Off => Repeat::All,
+            Repeat::All => Repeat::One,
+            Repeat::One => Repeat::Off,
+        }
     }
 }

@@ -22,6 +22,9 @@ const TRACK_DURATION_WIDTH: u16 = 7;
 const LIBRARY_STATS_HEIGHT: u16 = 1;
 const KEYMAPS_HEIGHT: u16 = 1;
 const SHUFFLE_WIDTH: u16 = 15;
+const REPEAT_WIDTH: u16 = 14;
+
+const DELIMITER: &str = "•";
 
 const APP_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Length(LIBRARY_STATS_HEIGHT),
@@ -36,8 +39,9 @@ const LIBRARY_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Length(TRACK_DURATION_WIDTH),
 ];
 const PLAYER_CONSTRAINTS: [Constraint; 2] = [Constraint::Ratio(1, 2); 2];
-const CURRENT_TRACK_CONSTRAINTS: [Constraint; 3] = [
+const CURRENT_TRACK_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Fill(1),
+    Constraint::Length(REPEAT_WIDTH),
     Constraint::Length(SHUFFLE_WIDTH),
     Constraint::Length(VOLUME_WIDTH),
 ];
@@ -126,15 +130,15 @@ fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
         "Library: ",
         Style::new().bold().fg(colors::FIERY_ORANGE),
     ));
-    spans.push(Span::raw(format!("{len} tracks • {total} total")));
+    spans.push(Span::raw(format!("{len} tracks {DELIMITER} {total} total")));
 
     if let Some(s) = app.table_state.selected() {
-        spans.push(Span::raw(" • "));
+        spans.push(Span::raw(format!(" {DELIMITER} ")));
         spans.push(Span::raw(format!("selected {}/{}", s + 1, visible_len)));
     }
 
     if !app.search.is_empty() {
-        spans.push(Span::raw(" • "));
+        spans.push(Span::raw(format!(" {DELIMITER} ")));
         spans.push(Span::raw(format!("searching: \"{}\"", app.search.query())));
     }
 
@@ -243,20 +247,23 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
 
     let status = Paragraph::new(current_track_text(app.player.status, track));
 
+    let repeat = Span::raw(format!("Repeat: {} {DELIMITER} ", app.player.repeat));
+
+    let shuffle = Span::raw(format!(
+        "Shuffle: {} {DELIMITER}",
+        if app.player.shuffle { "on " } else { "off" }
+    ));
+
     let volume = LineGauge::default()
         .label(format!("Volume: {}%", app.player.volume()))
         .filled_style(Style::new().fg(colors::LIGHTNING_YELLOW))
         .filled_symbol(symbols::line::HORIZONTAL)
         .ratio(f64::from(app.player.volume()) / 100.0);
 
-    let shuffle = Span::raw(format!(
-        "Shuffle: {} •",
-        if app.player.shuffle { "on " } else { "off" }
-    ));
-
     frame.render_widget(status, rects[0]);
-    frame.render_widget(shuffle, rects[1]);
-    frame.render_widget(volume, rects[2]);
+    frame.render_widget(repeat, rects[1]);
+    frame.render_widget(shuffle, rects[2]);
+    frame.render_widget(volume, rects[3]);
 }
 
 fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
@@ -265,7 +272,7 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
         _ => String::from("Pause"),
     };
     let keymaps = format!(
-        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [s] Shuffle | [+/-] Volume | [/] Search | [q] Quit"
+        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [s] Shuffle | [r] Repeat | [+/-] Volume | [/] Search | [q] Quit"
     );
     let block = Block::new().padding(Padding::horizontal(2));
 
