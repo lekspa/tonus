@@ -71,9 +71,12 @@ impl App {
         match self.player.repeat {
             Repeat::Off => {
                 let queue = self.playback_queue();
+                if queue.is_empty() {
+                    return;
+                }
                 let current = self.player.current_track_id;
                 // Should not advance to first track after playing the last
-                if index_of(current, queue).is_some_and(|i| i + 1 < queue.len()) {
+                if index_of(current, queue).unwrap_or(0) + 1 < queue.len() {
                     self.play_next()
                 }
             }
