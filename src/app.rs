@@ -117,17 +117,17 @@ impl App {
                     match key_event.code {
                         KeyCode::Esc => {
                             self.search.reset();
-                            self.refresh_filter_if_stale();
+                            self.apply_filter_if_stale();
                             self.reshuffle();
                         }
                         KeyCode::Enter => {
                             self.search.set_active(false);
-                            self.refresh_filter_if_stale();
+                            self.apply_filter_if_stale();
                             self.reshuffle();
                         }
                         _ => {
                             self.search.handle_event(&event);
-                            self.refresh_filter_if_stale();
+                            self.apply_filter_if_stale();
                         }
                     }
                 } else {
@@ -247,7 +247,15 @@ impl App {
 
     fn apply_filter(&mut self) {
         let query = self.search.query();
-        self.filter.apply(query, &self.library);
+        let query_lower = query.to_lowercase();
+        let track_ids = self.library.track_ids();
+        let filter = |id: TrackId| {
+            self.library
+                .get_track(id)
+                .is_some_and(|track| track.contains(&query_lower))
+        };
+
+        self.filter.apply(query, track_ids, filter);
     }
 
     fn sync_selection(&mut self) {
@@ -270,7 +278,7 @@ impl App {
         self.selected_track_id = Some(track_id);
     }
 
-    fn refresh_filter_if_stale(&mut self) {
+    fn apply_filter_if_stale(&mut self) {
         let query = self.search.query();
 
         if self.filter.is_stale(query) {
