@@ -3,6 +3,7 @@ use ratatui::crossterm;
 use ratatui::crossterm::event::{self, KeyCode, KeyEventKind};
 use ratatui::{DefaultTerminal, widgets::TableState};
 use std::time::Duration;
+use tracing::{trace, warn};
 
 use crate::cli::Cli;
 use crate::config::Config;
@@ -77,7 +78,7 @@ impl App {
                 let current = self.player.current_track_id;
                 // Should not advance to first track after playing the last
                 if index_of(current, queue).unwrap_or(0) + 1 < queue.len() {
-                    self.play_next()
+                    self.play_next();
                 }
             }
             Repeat::All => self.play_next(),
@@ -109,7 +110,7 @@ impl App {
 
     fn handle_events(&mut self) -> Result<()> {
         let event = event::read()?;
-
+        trace!(?event);
         match event {
             event::Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                 if self.search.is_active() {
@@ -201,9 +202,9 @@ impl App {
         let Some(track) = self.library.get_track(id) else {
             return;
         };
-        //TODO: handle error; should play function set `player.current_track_id` instead of app?
-        let _ = self.player.play(&track.path);
-        self.player.set_track(Some(track.id));
+        if let Err(e) = self.player.play(track) {
+            warn!("Failed to play {}: {e:?}", track.path.display());
+        }
     }
 
     fn play_next(&mut self) {
@@ -283,7 +284,7 @@ impl App {
         if self.player.status == PlayerStatus::Stopped {
             self.play(self.player.current_track_id);
         } else {
-            self.player.toggle()
+            self.player.toggle();
         }
     }
 

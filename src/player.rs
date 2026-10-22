@@ -4,12 +4,11 @@ use rodio::source::EmptyCallback;
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink};
 use std::fmt::Display;
 use std::fs::File;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::timer::Timer;
-use crate::track::TrackId;
+use crate::track::{Track, TrackId};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum PlayerStatus {
@@ -78,8 +77,8 @@ impl Player {
         self.playback_finished.load(Ordering::Relaxed)
     }
 
-    pub fn play(&mut self, path: &Path) -> Result<()> {
-        let file = File::open(path)?;
+    pub fn play(&mut self, track: &Track) -> Result<()> {
+        let file = File::open(&track.path)?;
         let source = Decoder::try_from(file)?;
 
         let playback_finished = Arc::clone(&self.playback_finished);
@@ -97,6 +96,7 @@ impl Player {
 
         self.timer.start();
 
+        self.current_track_id = Some(track.id);
         self.status = PlayerStatus::Playing;
 
         Ok(())
@@ -112,10 +112,6 @@ impl Player {
             self.timer.stop();
             self.status = PlayerStatus::Paused;
         }
-    }
-
-    pub fn set_track(&mut self, id: Option<TrackId>) {
-        self.current_track_id = id;
     }
 
     pub fn volume(&self) -> f32 {
