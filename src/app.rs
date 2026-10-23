@@ -144,6 +144,8 @@ impl App {
                         KeyCode::Char('-') => self.player.volume_down(),
                         KeyCode::Char('/') => self.search.set_active(true),
                         KeyCode::Enter => self.play(self.selected_track_id),
+                        KeyCode::Right => self.seek_forward(),
+                        KeyCode::Left => self.seek_backward(),
                         _ => {}
                     }
                 }
@@ -312,6 +314,26 @@ impl App {
         if self.player.shuffle {
             self.player.shuffle_track_ids(self.filter.result());
         }
+    }
+
+    fn seek_forward(&self) {
+        let Some(id) = self.player.current_track_id else {
+            return;
+        };
+        let Some(track) = self.library.get_track(id) else {
+            return;
+        };
+        self.player.seek_forward(track);
+    }
+
+    fn seek_backward(&self) {
+        let Some(id) = self.player.current_track_id else {
+            return;
+        };
+        let Some(track) = self.library.get_track(id) else {
+            return;
+        };
+        self.player.seek_backward(track);
     }
 }
 /// Returns the next index from current position not exceeding the `len`.

@@ -1,7 +1,7 @@
 use std::{
     sync::{
         Arc,
-        atomic::{AtomicBool, AtomicU32, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
@@ -9,7 +9,7 @@ use std::{
 
 pub struct Timer {
     running: Arc<AtomicBool>,
-    elapsed: Arc<AtomicU32>,
+    elapsed: Arc<AtomicU64>,
     handle: Option<JoinHandle<()>>,
 }
 
@@ -17,7 +17,7 @@ impl Timer {
     pub fn new() -> Self {
         Self {
             running: Arc::new(AtomicBool::new(false)),
-            elapsed: Arc::new(AtomicU32::new(0)),
+            elapsed: Arc::new(AtomicU64::new(0)),
             handle: None,
         }
     }
@@ -63,11 +63,11 @@ impl Timer {
         self.elapsed.store(0, Ordering::Relaxed);
     }
 
-    pub fn elapsed(&self) -> u32 {
+    pub fn elapsed(&self) -> u64 {
         self.elapsed.load(Ordering::Relaxed)
     }
 
-    pub fn is_running(&self) -> bool {
-        self.running.load(Ordering::Relaxed)
+    pub fn set_elapsed(&self, value: u64) {
+        self.elapsed.store(value, Ordering::Release);
     }
 }

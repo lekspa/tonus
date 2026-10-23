@@ -224,7 +224,7 @@ fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Re
         |t| {
             (
                 app.player.progress(t.duration),
-                format::progress(elapsed.into(), t.duration),
+                format::progress(elapsed, t.duration),
             )
         },
     );
@@ -272,7 +272,7 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
         _ => String::from("Pause"),
     };
     let keymaps = format!(
-        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [s] Shuffle | [r] Repeat | [+/-] Volume | [/] Search | [q] Quit"
+        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [s] Shuffle | [r] Repeat | [+/-] Volume | [←/→] Seek | [/] Search | [q] Quit"
     );
     let block = Block::new().padding(Padding::horizontal(2));
 

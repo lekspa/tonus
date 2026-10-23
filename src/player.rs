@@ -6,9 +6,13 @@ use std::fmt::Display;
 use std::fs::File;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+use tracing::warn;
 
 use crate::timer::Timer;
 use crate::track::{Track, TrackId};
+
+const SEEK_STEP: u64 = 10;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum PlayerStatus {
@@ -130,7 +134,7 @@ impl Player {
 
     #[allow(clippy::cast_precision_loss)]
     pub fn progress(&self, duration: u64) -> f64 {
-        (f64::from(self.timer.elapsed()) / duration as f64).clamp(0.0, 1.0)
+        (self.timer.elapsed() as f64 / duration as f64).clamp(0.0, 1.0)
     }
 
     pub fn on_playback_completion(&mut self) {
@@ -156,6 +160,32 @@ impl Player {
             Repeat::Off => Repeat::All,
             Repeat::All => Repeat::One,
             Repeat::One => Repeat::Off,
+        }
+    }
+
+    /// Attempts to seek forward by 10s in `track`.
+    pub fn seek_forward(&self, track: &Track) {
+        self.seek(track, SEEK_STEP.cast_signed());
+    }
+
+    /// Attempts to seek backward by 10s in `track`.
+    pub fn seek_backward(&self, track: &Track) {
+        self.seek(track, -(SEEK_STEP.cast_signed()));
+    }
+
+    fn seek(&self, track: &Track, offset: i64) {
+        if self.status != PlayerStatus::Playing {
+            return;
+        }
+
+        let elapsed = self.timer.elapsed();
+        let position = (elapsed.cast_signed() + offset)
+            .clamp(0, track.duration.cast_signed())
+            .cast_unsigned();
+
+        match self.player.try_seek(Duration::from_secs(position)) {
+            Ok(()) => self.timer.set_elapsed(position),
+            Err(e) => warn!("failed seeking to {position}: {e:?}"),
         }
     }
 }
