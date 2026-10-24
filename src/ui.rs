@@ -267,16 +267,49 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
 }
 
 fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
-    let space_text = match app.player.status {
-        PlayerStatus::Paused => String::from("Resume"),
-        _ => String::from("Pause"),
-    };
-    let keymaps = format!(
-        "[j/k] Navigate | [n/p] Next/Prev | [Enter] Play | [Space] {space_text} | [s] Shuffle | [r] Repeat | [+/-] Volume | [←/→] Seek | [/] Search | [q] Quit"
-    );
+    let general_keymaps = vec![
+        ("j/k", "Navigate"),
+        ("n/p", "Next/Prev"),
+        ("Enter", "Play"),
+        ("Space", "Toggle"),
+        ("+/-", "Volume"),
+        ("s", "Shuffle"),
+        ("r", "Repeat"),
+        ("←/→", "Seek"),
+        ("/", "Search"),
+        ("q", "Quit"),
+    ];
+
+    let search_keymaps = vec![
+        ("Esc", "Exit"),
+        ("Enter", "Confirm"),
+        ("←/→", "Move cursor"),
+    ];
+
     let block = Block::new().padding(Padding::horizontal(2));
 
-    frame.render_widget(Paragraph::new(keymaps).block(block), area);
+    let keymaps = if app.search.is_active() {
+        search_keymaps
+    } else {
+        general_keymaps
+    };
+
+    let mut spans = Vec::new();
+
+    for (index, &(keys, label)) in keymaps.iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" | "));
+        }
+        spans.push(Span::styled("[", Style::new().dim()));
+        spans.push(Span::styled(
+            keys,
+            Style::new().fg(colors::FIERY_ORANGE).bold(),
+        ));
+        spans.push(Span::styled("] ", Style::new().dim()));
+        spans.push(Span::raw(label));
+    }
+
+    frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
 }
 
 fn render_search(app: &App, frame: &mut Frame, area: Rect) {
