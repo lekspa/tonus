@@ -39,7 +39,7 @@ impl App {
             search: Search::new(),
             table_state: TableState::new(),
             selected_track_id: None,
-            column_widths: ui::compute_column_widths(Self::terminal_width()),
+            column_widths: ui::compute_column_widths(terminal_width()),
             filter: Filter::default(),
         })
     }
@@ -103,11 +103,6 @@ impl App {
         index_of(track_id, self.filter.result())
     }
 
-    // TODO: Recompute on terminal resize
-    fn terminal_width() -> u16 {
-        crossterm::terminal::size().ok().map_or(80, |(w, _)| w)
-    }
-
     fn handle_events(&mut self) -> Result<()> {
         let event = event::read()?;
         trace!(?event);
@@ -149,6 +144,9 @@ impl App {
                         _ => {}
                     }
                 }
+            }
+            event::Event::Resize(columns, _) => {
+                self.column_widths = ui::compute_column_widths(columns);
             }
             _ => {}
         }
@@ -351,4 +349,8 @@ fn prev_index(current: Option<usize>, len: usize) -> usize {
 /// Returns index of element in a given slice.
 fn index_of<T: PartialEq>(element: Option<T>, slice: &[T]) -> Option<usize> {
     element.and_then(|e| slice.iter().position(|x| *x == e))
+}
+
+fn terminal_width() -> u16 {
+    crossterm::terminal::size().ok().map_or(80, |(w, _)| w)
 }
