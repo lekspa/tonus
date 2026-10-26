@@ -4,6 +4,7 @@ use lofty::read_from_path;
 use std::hash::Hash;
 use std::hash::{DefaultHasher, Hasher};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 pub type TrackId = u64;
 
@@ -14,7 +15,7 @@ pub struct Track {
     pub title: String,
     pub artist: String,
     pub album: String,
-    pub duration: u64,
+    pub duration: Duration,
 }
 
 impl Track {
@@ -59,7 +60,7 @@ impl Track {
             title,
             artist,
             album,
-            duration: tagged_file.properties().duration().as_secs(),
+            duration: tagged_file.properties().duration(),
         })
     }
 

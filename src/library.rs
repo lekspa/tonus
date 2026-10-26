@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::result::Result;
+use std::time::Duration;
 use walkdir::WalkDir;
 
 const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
@@ -11,7 +12,7 @@ const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
 pub struct Library {
     tracks: HashMap<TrackId, Track>,
     track_ids: Vec<TrackId>,
-    pub total_duration: u64,
+    pub total_duration: Duration,
 }
 
 impl Library {

@@ -133,8 +133,11 @@ impl Player {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    pub fn progress(&self, duration: u64) -> f64 {
-        (self.timer.elapsed() as f64 / duration as f64).clamp(0.0, 1.0)
+    pub fn progress(&self, duration: Duration) -> f64 {
+        if duration.is_zero() {
+            return 0.0;
+        }
+        (self.timer.elapsed() as f64 / duration.as_secs_f64()).clamp(0.0, 1.0)
     }
 
     pub fn on_playback_completion(&mut self) {
@@ -180,7 +183,7 @@ impl Player {
 
         let elapsed = self.timer.elapsed();
         let position = (elapsed.cast_signed() + offset)
-            .clamp(0, track.duration.cast_signed())
+            .clamp(0, track.duration.as_secs().cast_signed())
             .cast_unsigned();
 
         match self.player.try_seek(Duration::from_secs(position)) {
