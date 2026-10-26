@@ -137,7 +137,7 @@ impl Player {
         if duration.is_zero() {
             return 0.0;
         }
-        (self.timer.elapsed() as f64 / duration.as_secs_f64()).clamp(0.0, 1.0)
+        (self.timer.elapsed().as_secs_f64() / duration.as_secs_f64()).clamp(0.0, 1.0)
     }
 
     pub fn on_playback_completion(&mut self) {
@@ -182,7 +182,7 @@ impl Player {
         }
 
         let elapsed = self.timer.elapsed();
-        let position = (elapsed.cast_signed() + offset)
+        let position = (elapsed.as_secs().cast_signed() + offset)
             .clamp(0, track.duration.as_secs().cast_signed())
             .cast_unsigned();
 

@@ -19,8 +19,8 @@ pub fn total_duration(duration: Duration) -> String {
 }
 
 /// Formats elapsed time and total time to "0:00/0:00" format
-pub fn progress(elapsed: u64, length: Duration) -> String {
-    let elapsed = duration(Duration::from_secs(elapsed));
+pub fn progress(elapsed: Duration, length: Duration) -> String {
+    let elapsed = duration(elapsed);
     let length = duration(length);
     format!("{elapsed}/{length}")
 }
@@ -45,6 +45,9 @@ mod tests {
 
     #[test]
     fn formats_progress() {
-        assert_eq!(progress(100, Duration::from_secs(150)), "1:40/2:30");
+        assert_eq!(
+            progress(Duration::from_secs(100), Duration::from_secs(150)),
+            "1:40/2:30"
+        );
     }
 }

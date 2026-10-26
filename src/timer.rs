@@ -63,8 +63,8 @@ impl Timer {
         self.elapsed.store(0, Ordering::Relaxed);
     }
 
-    pub fn elapsed(&self) -> u64 {
-        self.elapsed.load(Ordering::Relaxed)
+    pub fn elapsed(&self) -> Duration {
+        Duration::from_secs(self.elapsed.load(Ordering::Relaxed))
     }
 
     pub fn set_elapsed(&self, value: u64) {
