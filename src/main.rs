@@ -4,6 +4,7 @@ mod colors;
 mod config;
 mod filter;
 mod format;
+mod indexing;
 mod library;
 mod logging;
 mod player;

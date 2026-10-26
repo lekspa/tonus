@@ -8,6 +8,7 @@ use tracing::{trace, warn};
 use crate::cli::Cli;
 use crate::config::Config;
 use crate::filter::Filter;
+use crate::indexing::{index_of, next_index, prev_index};
 use crate::library::Library;
 use crate::player::{Player, PlayerStatus, Repeat};
 use crate::search::Search;
@@ -333,22 +334,6 @@ impl App {
         };
         self.player.seek_backward(track);
     }
-}
-/// Returns the next index from current position not exceeding the `len`.
-/// Caller must guard against `len` being 0.
-fn next_index(current: Option<usize>, len: usize) -> usize {
-    current.map_or(0, |index| (index + 1) % len)
-}
-
-/// Returns the previous index from current position not exceeding the `len`.
-/// Caller must guard against `len` being 0.
-fn prev_index(current: Option<usize>, len: usize) -> usize {
-    current.map_or_else(|| len.saturating_sub(1), |index| (index + len - 1) % len)
-}
-
-/// Returns index of element in a given slice.
-fn index_of<T: PartialEq>(element: Option<T>, slice: &[T]) -> Option<usize> {
-    element.and_then(|e| slice.iter().position(|x| *x == e))
 }
 
 fn terminal_width() -> u16 {
