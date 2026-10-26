@@ -71,3 +71,9 @@ impl Timer {
         self.elapsed.store(value, Ordering::Release);
     }
 }
+
+impl Drop for Timer {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
