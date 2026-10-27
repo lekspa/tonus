@@ -53,7 +53,7 @@ impl App {
             while !self.should_quit {
                 terminal.draw(|frame| ui::render(frame, self))?;
 
-                if event::poll(Duration::from_millis(16))? {
+                if event::poll(self.timeout())? {
                     self.handle_events()?;
                 }
 
@@ -102,6 +102,15 @@ impl App {
     /// Returns the index of track in visible track list (filtered or all).
     pub fn index_of_track(&self, track_id: Option<TrackId>) -> Option<usize> {
         index_of(track_id, self.filter.result())
+    }
+
+    /// Returns the timeout used for events polling.
+    /// The smaller the number, the higher the CPU usage.
+    fn timeout(&self) -> Duration {
+        match self.player.status {
+            PlayerStatus::Playing => Duration::from_millis(32),
+            _ => Duration::from_millis(256),
+        }
     }
 
     fn handle_events(&mut self) -> Result<()> {
