@@ -167,16 +167,16 @@ impl Player {
     }
 
     /// Attempts to seek forward by 10s in `track`.
-    pub fn seek_forward(&self, track: &Track) {
+    pub fn seek_forward(&mut self, track: &Track) {
         self.seek(track, SEEK_STEP.cast_signed());
     }
 
     /// Attempts to seek backward by 10s in `track`.
-    pub fn seek_backward(&self, track: &Track) {
+    pub fn seek_backward(&mut self, track: &Track) {
         self.seek(track, -(SEEK_STEP.cast_signed()));
     }
 
-    fn seek(&self, track: &Track, offset: i64) {
+    fn seek(&mut self, track: &Track, offset: i64) {
         if self.status != PlayerStatus::Playing {
             return;
         }
@@ -187,7 +187,7 @@ impl Player {
             .cast_unsigned();
 
         match self.player.try_seek(Duration::from_secs(position)) {
-            Ok(()) => self.timer.set_elapsed(position),
+            Ok(()) => self.timer.set_accumulated(Duration::from_secs(position)),
             Err(e) => warn!("failed seeking to {position}: {e:?}"),
         }
     }

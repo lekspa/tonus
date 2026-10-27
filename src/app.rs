@@ -315,7 +315,7 @@ impl App {
         }
     }
 
-    fn seek_forward(&self) {
+    fn seek_forward(&mut self) {
         let Some(id) = self.player.current_track_id else {
             return;
         };
@@ -325,7 +325,7 @@ impl App {
         self.player.seek_forward(track);
     }
 
-    fn seek_backward(&self) {
+    fn seek_backward(&mut self) {
         let Some(id) = self.player.current_track_id else {
             return;
         };

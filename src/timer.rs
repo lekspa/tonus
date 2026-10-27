@@ -1,79 +1,103 @@
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicU64, Ordering},
-    },
-    thread::{self, JoinHandle},
-    time::Duration,
-};
+use std::time::{Duration, Instant};
 
+/// Elapsed time is calulated by using segments.
+/// Segment is an `Instant` when the timer was started of resumed.
+/// Once the timer is stopped, the segment completes and its elapsed time is accumulated.
+#[derive(Default)]
 pub struct Timer {
-    running: Arc<AtomicBool>,
-    elapsed: Arc<AtomicU64>,
-    handle: Option<JoinHandle<()>>,
+    /// Beginning of current segment
+    started_at: Option<Instant>,
+    /// Time accumulated by previously completed segments
+    accumulated: Duration,
 }
 
 impl Timer {
     pub fn new() -> Self {
-        Self {
-            running: Arc::new(AtomicBool::new(false)),
-            elapsed: Arc::new(AtomicU64::new(0)),
-            handle: None,
-        }
+        Self::default()
     }
 
     pub fn start(&mut self) {
-        if self.running.load(Ordering::Relaxed) {
-            return;
+        if self.started_at.is_none() {
+            self.started_at = Some(Instant::now());
         }
-
-        let running = Arc::clone(&self.running);
-        let elapsed = Arc::clone(&self.elapsed);
-
-        self.running.store(true, Ordering::Release);
-
-        let handle = thread::spawn(move || {
-            loop {
-                // NOTE: Ordering of sleeping the thread and breaking the loop matters.
-                // If changed, counter is incremented by 1s if playback is paused after 100ms of playing.
-                // FIXME: Playing and pausing the track multiple times causes desynchronization between
-                // actual playback time and timer elapsed time. Explore oportunity to sleep for n millis/nanos for higher presicion.
-                thread::sleep(Duration::from_secs(1));
-
-                if !running.load(Ordering::Acquire) {
-                    break;
-                }
-
-                elapsed.fetch_add(1, Ordering::Relaxed);
-            }
-        });
-
-        self.handle = Some(handle);
     }
 
     pub fn stop(&mut self) {
-        self.running.store(false, Ordering::Release);
-
-        if let Some(handle) = self.handle.take() {
-            let _ = handle.join();
+        if let Some(started_at) = self.started_at.take() {
+            self.accumulated += started_at.elapsed();
         }
     }
 
-    pub fn reset(&self) {
-        self.elapsed.store(0, Ordering::Relaxed);
+    pub fn reset(&mut self) {
+        self.started_at = None;
+        self.accumulated = Duration::ZERO;
     }
 
     pub fn elapsed(&self) -> Duration {
-        Duration::from_secs(self.elapsed.load(Ordering::Relaxed))
+        self.accumulated + self.started_at.map_or(Duration::ZERO, |t| t.elapsed())
     }
 
-    pub fn set_elapsed(&self, value: u64) {
-        self.elapsed.store(value, Ordering::Release);
+    pub fn set_accumulated(&mut self, value: Duration) {
+        self.accumulated = value;
+        if self.started_at.is_some() {
+            // `self.elapsed` should be equal to `value`
+            self.started_at = Some(Instant::now());
+        }
     }
 }
 
-impl Drop for Timer {
-    fn drop(&mut self) {
-        self.stop();
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn starts_empty() {
+        let timer = Timer::new();
+        assert_eq!(timer.elapsed(), Duration::ZERO);
+    }
+
+    #[test]
+    fn starts_segment() {
+        let mut timer = Timer::new();
+        timer.start();
+        assert!(timer.started_at.is_some());
+        assert!(timer.elapsed() > Duration::ZERO);
+    }
+
+    #[test]
+    fn stops_segment() {
+        let mut timer = Timer::new();
+        timer.start();
+        assert!(timer.started_at.is_some());
+        timer.stop();
+        assert!(timer.started_at.is_none());
+        assert!(timer.elapsed() > Duration::ZERO);
+    }
+
+    #[test]
+    fn resets() {
+        let mut timer = Timer::new();
+        timer.start();
+        assert!(timer.started_at.is_some());
+        assert!(timer.elapsed() > Duration::ZERO);
+        timer.reset();
+        assert!(timer.started_at.is_none());
+        assert_eq!(timer.accumulated, Duration::ZERO);
+        assert_eq!(timer.elapsed(), Duration::ZERO);
+    }
+
+    #[test]
+    fn returns_elapsed() {
+        let mut timer = Timer::new();
+        timer.start();
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(timer.elapsed() > Duration::from_millis(100));
+    }
+
+    #[test]
+    fn sets_accumulated() {
+        let mut timer = Timer::new();
+        timer.set_accumulated(Duration::from_secs(10));
+        assert_eq!(timer.elapsed(), Duration::from_secs(10));
     }
 }
