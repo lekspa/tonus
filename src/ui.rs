@@ -1,4 +1,5 @@
 pub mod color;
+pub mod constraints;
 pub mod format;
 pub mod theme;
 pub mod truncate;
@@ -19,42 +20,13 @@ use crate::player::PlayerStatus;
 use crate::ui::truncate::truncate;
 use crate::{app::App, track::Track};
 
-const PLAYBACK_HEIGHT: u16 = 4;
-const VOLUME_WIDTH: u16 = 24;
-const TRACK_DURATION_WIDTH: u16 = 7;
-const LIBRARY_STATS_HEIGHT: u16 = 1;
-const KEYMAPS_HEIGHT: u16 = 1;
-const SHUFFLE_WIDTH: u16 = 15;
-const REPEAT_WIDTH: u16 = 14;
-
 const DELIMITER: &str = "•";
-
-const APP_CONSTRAINTS: [Constraint; 4] = [
-    Constraint::Length(LIBRARY_STATS_HEIGHT),
-    Constraint::Fill(1),
-    Constraint::Length(PLAYBACK_HEIGHT),
-    Constraint::Length(KEYMAPS_HEIGHT),
-];
-const LIBRARY_CONSTRAINTS: [Constraint; 4] = [
-    Constraint::Min(24),
-    Constraint::Min(18),
-    Constraint::Min(18),
-    Constraint::Length(TRACK_DURATION_WIDTH),
-];
-const PLAYER_CONSTRAINTS: [Constraint; 2] = [Constraint::Ratio(1, 2); 2];
-const CURRENT_TRACK_CONSTRAINTS: [Constraint; 4] = [
-    Constraint::Fill(1),
-    Constraint::Length(REPEAT_WIDTH),
-    Constraint::Length(SHUFFLE_WIDTH),
-    Constraint::Length(VOLUME_WIDTH),
-];
-
 const SEARCH_PREFIX: &str = "Search: ";
 
 /// Computes track list table column widths exluding horizontal table borders(2 columns)
 pub fn compute_column_widths(width: u16) -> Vec<usize> {
     let area = Rect::new(0, 0, width, 1);
-    Layout::horizontal(LIBRARY_CONSTRAINTS)
+    Layout::horizontal(constraints::LIBRARY)
         .split(area)
         .iter()
         .map(|rect| rect.width.saturating_sub(2) as usize)
@@ -63,7 +35,7 @@ pub fn compute_column_widths(width: u16) -> Vec<usize> {
 
 pub fn render(frame: &mut Frame, app: &mut App) {
     let theme = app.config.theme();
-    let rects = Layout::vertical(APP_CONSTRAINTS).split(frame.area());
+    let rects = Layout::vertical(constraints::APP).split(frame.area());
     let block = Block::new()
         .style(Style::new().bg(theme.background))
         .fg(theme.foreground);
@@ -204,7 +176,7 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
         .filter_map(|(idx, &id)| app.library.get_track(id).map(|t| (idx, t)))
         .map(|(index, track)| table_row(index, track, app));
 
-    let table = Table::new(rows, LIBRARY_CONSTRAINTS)
+    let table = Table::new(rows, constraints::LIBRARY)
         .block(Block::bordered().border_type(BorderType::Rounded))
         .header(header)
         .highlight_symbol(">")
@@ -218,7 +190,7 @@ fn render_player(app: &App, frame: &mut Frame, area: Rect) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1));
-    let rects = Layout::vertical(PLAYER_CONSTRAINTS).split(block.inner(area));
+    let rects = Layout::vertical(constraints::PLAYER).split(block.inner(area));
     let track = app.current_track();
 
     frame.render_widget(block, area);
@@ -253,7 +225,7 @@ fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Re
 
 fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
-    let rects = Layout::horizontal(CURRENT_TRACK_CONSTRAINTS)
+    let rects = Layout::horizontal(constraints::CURRENT_TRACK)
         .flex(Flex::SpaceBetween)
         .split(area);
 
