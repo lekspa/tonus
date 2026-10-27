@@ -9,7 +9,6 @@ use ratatui::{
     },
 };
 
-use crate::colors;
 use crate::config::config_file_path;
 use crate::format;
 use crate::player::PlayerStatus;
@@ -28,7 +27,7 @@ const DELIMITER: &str = "•";
 
 const APP_CONSTRAINTS: [Constraint; 4] = [
     Constraint::Length(LIBRARY_STATS_HEIGHT),
-    Constraint::Min(0),
+    Constraint::Fill(1),
     Constraint::Length(PLAYBACK_HEIGHT),
     Constraint::Length(KEYMAPS_HEIGHT),
 ];
@@ -59,8 +58,11 @@ pub fn compute_column_widths(width: u16) -> Vec<usize> {
 }
 
 pub fn render(frame: &mut Frame, app: &mut App) {
+    let theme = app.config.theme();
     let rects = Layout::vertical(APP_CONSTRAINTS).split(frame.area());
-    let block = Block::new().style(Style::new().bg(colors::PRIMARY_BG));
+    let block = Block::new()
+        .style(Style::new().bg(theme.background))
+        .fg(theme.foreground);
     // Render an empty block to apply a global background
     frame.render_widget(block, frame.area());
 
@@ -80,7 +82,8 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     render_keymaps(app, frame, rects[3]);
 }
 
-pub fn render_welcome_screen(frame: &mut Frame) {
+pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
+    let theme = app.config.theme();
     let area = frame.area();
     let centered_area = area.centered_vertically(Constraint::Length(7));
     let block = Block::bordered().border_type(BorderType::Rounded);
@@ -89,7 +92,7 @@ pub fn render_welcome_screen(frame: &mut Frame) {
     let lines = vec![
         Line::from(Span::styled(
             "Welcome to Sonus!",
-            Style::new().bold().fg(colors::FIERY_ORANGE),
+            Style::new().bold().fg(theme.accent),
         )),
         Line::from(""),
         Line::from("Player could not find your music directory."),
@@ -97,7 +100,7 @@ pub fn render_welcome_screen(frame: &mut Frame) {
             Span::raw("Add this to your config: "),
             Span::styled(
                 "music_directory = \"/path/to/music\"",
-                Style::new().bold().fg(colors::LIGHTNING_YELLOW),
+                Style::new().bold().fg(theme.accent),
             ),
             Span::raw("."),
         ]),
@@ -119,6 +122,7 @@ pub fn render_welcome_screen(frame: &mut Frame) {
 }
 
 fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
+    let theme = app.config.theme();
     let block = Block::new().padding(Padding::horizontal(2));
     let total = format::total_duration(app.library.total_duration);
     let len = app.library.len();
@@ -128,7 +132,7 @@ fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
 
     spans.push(Span::styled(
         "Library: ",
-        Style::new().bold().fg(colors::FIERY_ORANGE),
+        Style::new().bold().fg(theme.accent),
     ));
     spans.push(Span::raw(format!("{len} tracks {DELIMITER} {total} total")));
 
@@ -147,6 +151,7 @@ fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
+    let theme = app.config.theme();
     let cells = [
         truncate(&track.title, app.column_widths[0]),
         truncate(&track.artist, app.column_widths[1]),
@@ -155,7 +160,7 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
     ];
 
     let style = match app.index_of_track(app.player.current_track_id) {
-        Some(position) if index == position => Style::new().fg(colors::FIERY_ORANGE),
+        Some(position) if index == position => Style::new().fg(theme.accent),
         _ => Style::new(),
     };
 
@@ -178,13 +183,14 @@ fn render_library_placeholder(_app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
-    let header_style = Style::new().bold().bg(colors::HEADER_BG);
+    let theme = app.config.theme();
+    let header_style = Style::new().bold().bg(theme.surface);
     let header = Row::new(["Title", "Artist", "Album", "Length"]).style(header_style);
 
     let highlight_fg = if app.selected_track_id == app.player.current_track_id {
-        colors::FIERY_ORANGE
+        theme.accent
     } else {
-        colors::HIGHLIGHT_FG
+        theme.selection_foreground
     };
 
     let rows = app
@@ -199,7 +205,7 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
         .header(header)
         .highlight_symbol(">")
         .highlight_spacing(HighlightSpacing::Always)
-        .row_highlight_style(Style::new().bg(colors::HIGHLIGHT_BG).fg(highlight_fg));
+        .row_highlight_style(Style::new().bg(theme.selection_background).fg(highlight_fg));
 
     frame.render_stateful_widget(table, area, &mut app.table_state);
 }
@@ -218,6 +224,7 @@ fn render_player(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
+    let theme = app.config.theme();
     let elapsed = app.player.timer.elapsed();
     let (ratio, label) = track.map_or_else(
         || (0.0, String::from("0:00/0:00")),
@@ -229,18 +236,19 @@ fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Re
         },
     );
 
-    let style = Style::new().fg(colors::HIGHLIGHT_BG).bold();
+    let style = Style::new().fg(theme.on_accent).bold();
 
     let progress = Gauge::default()
         .ratio(ratio)
         .use_unicode(true)
         .label(Span::styled(label, style))
-        .gauge_style(Style::new().fg(colors::FIERY_ORANGE).bg(colors::HEADER_BG));
+        .gauge_style(Style::new().fg(theme.accent).bg(theme.surface));
 
     frame.render_widget(progress, area);
 }
 
 fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
+    let theme = app.config.theme();
     let rects = Layout::horizontal(CURRENT_TRACK_CONSTRAINTS)
         .flex(Flex::SpaceBetween)
         .split(area);
@@ -256,7 +264,7 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
 
     let volume = LineGauge::default()
         .label(format!("Volume: {}%", app.player.volume()))
-        .filled_style(Style::new().fg(colors::LIGHTNING_YELLOW))
+        .filled_style(Style::new().fg(theme.accent))
         .filled_symbol(symbols::line::HORIZONTAL)
         .ratio(f64::from(app.player.volume()) / 100.0);
 
@@ -267,6 +275,7 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
 }
 
 fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
+    let theme = app.config.theme();
     let general_keymaps = vec![
         ("j/k", "Navigate"),
         ("n/p", "Next/Prev"),
@@ -301,10 +310,7 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
             spans.push(Span::raw(" | "));
         }
         spans.push(Span::styled("[", Style::new().dim()));
-        spans.push(Span::styled(
-            keys,
-            Style::new().fg(colors::FIERY_ORANGE).bold(),
-        ));
+        spans.push(Span::styled(keys, Style::new().fg(theme.accent).bold()));
         spans.push(Span::styled("] ", Style::new().dim()));
         spans.push(Span::raw(label));
     }
@@ -313,6 +319,7 @@ fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_search(app: &App, frame: &mut Frame, area: Rect) {
+    let theme = app.config.theme();
     // Terminal dimensions never exceed u16::MAX (65535 pixels)
     let block_padding = 2;
     #[allow(clippy::cast_possible_truncation)]
@@ -321,7 +328,7 @@ fn render_search(app: &App, frame: &mut Frame, area: Rect) {
     let scroll = app.search.visual_scroll(width as usize);
 
     let text = Line::from(vec![
-        Span::styled(SEARCH_PREFIX, Style::new().bold().fg(colors::FIERY_ORANGE)),
+        Span::styled(SEARCH_PREFIX, Style::new().bold().fg(theme.accent)),
         Span::raw(app.search.query()),
     ]);
 

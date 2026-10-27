@@ -5,11 +5,24 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use crate::cli::Cli;
+use crate::theme::Theme;
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default)]
-    pub music_directory: Option<PathBuf>,
+    music_directory: Option<PathBuf>,
+    #[serde(default)]
+    theme: Theme,
+}
+
+impl Config {
+    pub fn music_dir(&self) -> Option<&PathBuf> {
+        self.music_directory.as_ref()
+    }
+
+    pub fn theme(&self) -> &Theme {
+        &self.theme
+    }
 }
 
 pub fn load(cli: Cli) -> Result<Config> {
@@ -61,7 +74,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tilde_expansion() {
+    fn expands_tilde() {
         let home = dirs::home_dir().expect("home directory should exist");
 
         assert_eq!(expand_tilde(Path::new("~")), home);

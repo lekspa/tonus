@@ -46,8 +46,8 @@ impl App {
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
-        if let Some(directory) = &self.config.music_directory {
-            self.library.load(directory);
+        if let Some(dir) = self.config.music_dir() {
+            self.library.load(dir);
             self.apply_filter();
 
             while !self.should_quit {
@@ -157,7 +157,7 @@ impl App {
 
     fn welcome_screen(&self, terminal: &mut DefaultTerminal) -> Result<()> {
         loop {
-            terminal.draw(ui::render_welcome_screen)?;
+            terminal.draw(|frame| ui::render_welcome_screen(frame, self))?;
 
             if let event::Event::Key(key) = crossterm::event::read()?
                 && key.kind == event::KeyEventKind::Press

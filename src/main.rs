@@ -1,6 +1,6 @@
 mod app;
 mod cli;
-mod colors;
+mod color;
 mod config;
 mod filter;
 mod format;
@@ -9,6 +9,7 @@ mod library;
 mod logging;
 mod player;
 mod search;
+mod theme;
 mod timer;
 mod track;
 mod truncate;
