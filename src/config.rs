@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use crate::cli::Cli;
-use crate::theme::Theme;
+use crate::ui::theme::Theme;
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct Config {

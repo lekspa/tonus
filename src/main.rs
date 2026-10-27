@@ -1,18 +1,14 @@
 mod app;
 mod cli;
-mod color;
 mod config;
 mod filter;
-mod format;
 mod indexing;
 mod library;
 mod logging;
 mod player;
 mod search;
-mod theme;
 mod timer;
 mod track;
-mod truncate;
 mod ui;
 
 use clap::Parser;

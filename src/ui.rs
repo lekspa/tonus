@@ -1,3 +1,8 @@
+pub mod color;
+pub mod format;
+pub mod theme;
+pub mod truncate;
+
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Flex, Layout, Rect},
@@ -10,9 +15,8 @@ use ratatui::{
 };
 
 use crate::config::config_file_path;
-use crate::format;
 use crate::player::PlayerStatus;
-use crate::truncate::truncate;
+use crate::ui::truncate::truncate;
 use crate::{app::App, track::Track};
 
 const PLAYBACK_HEIGHT: u16 = 4;

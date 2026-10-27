@@ -1,4 +1,4 @@
-use crate::color;
+use super::color;
 use ratatui::style::Color;
 use serde::Deserialize;
 
