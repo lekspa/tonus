@@ -36,7 +36,12 @@ pub fn compute_column_widths(width: u16) -> Vec<usize> {
 
 pub fn render(frame: &mut Frame, app: &mut App) {
     let theme = app.config.theme();
-    let rects = Layout::vertical(constraints::APP).split(frame.area());
+    let constraints: &[Constraint] = if app.config.are_keymaps_hidden() {
+        &constraints::APP_WITHOUT_KEYMAPS
+    } else {
+        &constraints::APP
+    };
+    let rects = Layout::vertical(constraints).split(frame.area());
     let block = Block::new()
         .style(Style::new().bg(theme.background))
         .fg(theme.foreground);
@@ -47,7 +52,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         render_search(app, frame, rects[0]);
         render_keymaps(app, frame, rects[3], &keymaps::SEARCH);
     } else {
-        render_library_stats(app, frame, rects[0]);
+        render_status_line(app, frame, rects[0]);
         render_keymaps(app, frame, rects[3], &keymaps::PRIMARY);
     }
 
@@ -99,7 +104,7 @@ pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
     frame.render_widget(paragraph, centered_area);
 }
 
-fn render_library_stats(app: &App, frame: &mut Frame, area: Rect) {
+fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
     let block = Block::new().padding(Padding::horizontal(2));
     let total = format::total_duration(app.library.total_duration);

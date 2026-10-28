@@ -18,6 +18,12 @@ pub const APP: [Constraint; 4] = [
     Constraint::Length(PLAYER_HEIGHT),
     Constraint::Length(KEYMAPS_HEIGHT),
 ];
+pub const APP_WITHOUT_KEYMAPS: [Constraint; 4] = [
+    Constraint::Length(LIBRARY_STATS_HEIGHT),
+    Constraint::Fill(1),
+    Constraint::Length(PLAYER_HEIGHT),
+    Constraint::Length(0),
+];
 pub const LIBRARY: [Constraint; 4] = [
     Constraint::Min(TRACK_TITLE_WIDTH),
     Constraint::Min(TRACK_ARTIST_WIDTH),
