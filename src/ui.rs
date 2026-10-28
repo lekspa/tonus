@@ -1,6 +1,7 @@
 pub mod color;
 pub mod constraints;
 pub mod format;
+mod keymaps;
 pub mod theme;
 pub mod truncate;
 
@@ -15,10 +16,10 @@ use ratatui::{
     },
 };
 
-use crate::config::config_file_path;
 use crate::player::PlayerStatus;
 use crate::ui::truncate::truncate;
 use crate::{app::App, track::Track};
+use crate::{config::config_file_path, ui::keymaps::Keymap};
 
 const DELIMITER: &str = "•";
 const SEARCH_PREFIX: &str = "Search: ";
@@ -44,8 +45,10 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 
     if app.search.is_active() {
         render_search(app, frame, rects[0]);
+        render_keymaps(app, frame, rects[3], &keymaps::SEARCH);
     } else {
         render_library_stats(app, frame, rects[0]);
+        render_keymaps(app, frame, rects[3], &keymaps::PRIMARY);
     }
 
     if app.library.is_empty() {
@@ -55,7 +58,6 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     }
 
     render_player(app, frame, rects[2]);
-    render_keymaps(app, frame, rects[3]);
 }
 
 pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
@@ -250,34 +252,9 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
     frame.render_widget(volume, rects[3]);
 }
 
-fn render_keymaps(app: &App, frame: &mut Frame, area: Rect) {
+fn render_keymaps(app: &App, frame: &mut Frame, area: Rect, keymaps: &[Keymap]) {
     let theme = app.config.theme();
-    let general_keymaps = vec![
-        ("j/k", "Navigate"),
-        ("n/p", "Next/Prev"),
-        ("Enter", "Play"),
-        ("Space", "Toggle"),
-        ("+/-", "Volume"),
-        ("s", "Shuffle"),
-        ("r", "Repeat"),
-        ("←/→", "Seek"),
-        ("/", "Search"),
-        ("q", "Quit"),
-    ];
-
-    let search_keymaps = vec![
-        ("Esc", "Exit"),
-        ("Enter", "Confirm"),
-        ("←/→", "Move cursor"),
-    ];
-
     let block = Block::new().padding(Padding::horizontal(2));
-
-    let keymaps = if app.search.is_active() {
-        search_keymaps
-    } else {
-        general_keymaps
-    };
 
     let mut spans = Vec::new();
 
