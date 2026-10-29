@@ -145,7 +145,7 @@ impl App {
                         KeyCode::Char(' ') => self.toggle(),
                         KeyCode::Char('s') => self.toggle_shuffle(),
                         KeyCode::Char('r') => self.player.toggle_repeat(),
-                        KeyCode::Char('+') => self.player.volume_up(),
+                        KeyCode::Char('+') | KeyCode::Char('=') => self.player.volume_up(),
                         KeyCode::Char('-') => self.player.volume_down(),
                         KeyCode::Char('/') => self.search.set_active(true),
                         KeyCode::Enter => self.play(self.selected_track_id),
