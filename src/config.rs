@@ -45,7 +45,7 @@ pub fn load(cli: Cli) -> Result<Config> {
 }
 
 pub fn config_file_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|path| path.join("sonus").join("config.toml"))
+    dirs::config_dir().map(|path| path.join("tonus").join("config.toml"))
 }
 
 fn load_config(path: Option<PathBuf>) -> Result<Config> {

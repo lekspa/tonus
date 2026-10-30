@@ -9,14 +9,14 @@ use tracing_subscriber::EnvFilter;
 fn log_dir() -> PathBuf {
     dirs::data_local_dir()
         .unwrap_or_else(std::env::temp_dir)
-        .join("sonus")
+        .join("tonus")
 }
 
 pub fn init_tracing() -> Result<WorkerGuard> {
     let dir = log_dir();
     std::fs::create_dir_all(&dir)?;
 
-    let file = File::create(dir.join("sonus.log"))?;
+    let file = File::create(dir.join("tonus.log"))?;
 
     let (non_blocking, guard) = non_blocking(file);
 

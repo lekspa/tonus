@@ -2195,27 +2195,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f"
 
 [[package]]
-name = "sonus"
-version = "0.1.0"
-dependencies = [
- "clap",
- "color-eyre",
- "dirs",
- "lofty",
- "rand 0.10.3",
- "ratatui",
- "rodio",
- "serde",
- "toml",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "tui-input",
- "unicode-width",
- "walkdir",
-]
-
-[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2653,6 +2632,27 @@ name = "toml_writer"
 version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
+
+[[package]]
+name = "tonus"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "dirs",
+ "lofty",
+ "rand 0.10.3",
+ "ratatui",
+ "rodio",
+ "serde",
+ "toml",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "tui-input",
+ "unicode-width",
+ "walkdir",
+]
 
 [[package]]
 name = "tracing"

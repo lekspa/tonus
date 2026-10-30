@@ -70,11 +70,11 @@ pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
     let area = frame.area();
     let centered_area = area.centered_vertically(Constraint::Length(7));
     let block = Block::bordered().border_type(BorderType::Rounded);
-    let config_file = config_file_path().unwrap_or_else(|| "~/.config/sonus/config.toml".into());
+    let config_file = config_file_path().unwrap_or_else(|| "~/.config/tonus/config.toml".into());
 
     let lines = vec![
         Line::from(Span::styled(
-            "Welcome to Sonus!",
+            "Welcome to Tonus!",
             Style::new().bold().fg(theme.accent),
         )),
         Line::from(""),
