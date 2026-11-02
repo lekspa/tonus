@@ -1,10 +1,10 @@
 pub type Keymap<'a> = (&'a str, &'a str);
 
 pub const PRIMARY: [Keymap; 10] = [
-    ("j/k", "Navigate"),
+    ("j/k", "Move"),
     ("n/p", "Next/Prev"),
     ("Enter", "Play"),
-    ("Space", "Toggle"),
+    ("Space", "Pause/Play"),
     ("+/-", "Volume"),
     ("s", "Shuffle"),
     ("r", "Repeat"),
