@@ -29,22 +29,38 @@ To run tonus, execute `tonus` in a shell.
 #### Keymaps
 Tonus runs with a default set of keymaps.
 
-| Key     | Description      |
-| ------- | ---------------- |
-| j, Down | Move down        |
-| k, Up   | Move up          |
-| n       | Next track       |
-| p       | Preivous track   |
-| Enter   | Play             |
-| Space   | Pause/Play       |
-| +, =    | Increase volume  |
-| -       | Decrease volume  |
-| s       | Toggle shuffle   |
-| r       | Toggle repeat    |
-| Right   | Seek 10s forward |
-| Left    | Seek 10s backward|
-| /       | Search           |
-| q       | Quit             |
+##### General
+
+| Key          | Description       |
+| ------------ | ----------------- |
+| `j`, `Down`  | Move down         |
+| `k`, `Up`    | Move up           |
+| `/`          | Search            |
+| `q`          | Quit              |
+
+##### Playback
+
+| Key          | Description         |
+| ------------ | ------------------- |
+| `n`          | Play next track     |
+| `p`          | Play previous track |
+| `Enter`      | Play selected       |
+| `Space`      | Toggle pause play   |
+| `+`, `=`     | Increase volume     |
+| `-`          | Decrease volume     |
+| `s`          | Toggle shuffle      |
+| `r`          | Toggle repeat       |
+| `Ctrl-Right` | Seek forward        |
+| `Ctrl-Left`  | Seek backwards      |
+
+##### Search
+
+| Key          | Description       |
+| ------------ | ----------------- |
+| `Esc`        | Reset and close   |
+| `Enter`      | Confirm query     |
+| `Left`       | Move cursor left  |
+| `Right`      | Move cursor right |
 
 #### Configuration
 The configuration file should be created at `$HOME/.config/tonus.toml`.
@@ -53,7 +69,7 @@ An example file can be found in `example` directory in this repository.
 #### Themes
 Theme can be customized by changing the `theme` section of configuration file.
 The value for each field should be specified as hex. Alternatively, the following
-values can used.
+colors can used.
 
 - `"reset"`
 - `"black"`

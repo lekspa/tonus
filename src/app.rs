@@ -1,7 +1,7 @@
 use color_eyre::eyre::Result;
-use ratatui::crossterm;
-use ratatui::crossterm::event::{self, KeyCode, KeyEventKind};
-use ratatui::{DefaultTerminal, widgets::TableState};
+use ratatui::crossterm::event::{self, KeyCode, KeyEventKind, KeyModifiers};
+use ratatui::widgets::{ListState, TableState};
+use ratatui::{DefaultTerminal, crossterm};
 use std::time::Duration;
 use tracing::{trace, warn};
 
@@ -15,8 +15,22 @@ use crate::search::Search;
 use crate::track::{Track, TrackId};
 use crate::ui;
 
+#[derive(PartialEq, Eq)]
+pub enum Mode {
+    Normal,
+    Search,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum CurrentView {
+    Main,
+    Keymaps,
+}
+
 pub struct App {
-    pub should_quit: bool,
+    should_quit: bool,
+    pub mode: Mode,
+    pub current_view: CurrentView,
     #[allow(dead_code)]
     pub cli: Cli,
     pub config: Config,
@@ -25,6 +39,7 @@ pub struct App {
     pub search: Search,
     pub table_state: TableState,
     pub selected_track_id: Option<TrackId>,
+    pub keymaps_list_state: ListState,
     pub column_widths: Vec<usize>,
     filter: Filter,
 }
@@ -33,6 +48,8 @@ impl App {
     pub fn new(config: Config, cli: Cli) -> Result<Self> {
         Ok(Self {
             should_quit: false,
+            mode: Mode::Normal,
+            current_view: CurrentView::Main,
             cli,
             config,
             library: Library::new(),
@@ -40,6 +57,7 @@ impl App {
             search: Search::new(),
             table_state: TableState::new(),
             selected_track_id: None,
+            keymaps_list_state: ListState::default().with_selected(Some(0)),
             column_widths: ui::compute_column_widths(terminal_width()),
             filter: Filter::default(),
         })
@@ -117,16 +135,39 @@ impl App {
         let event = event::read()?;
         trace!(?event);
         match event {
-            event::Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                if self.search.is_active() {
-                    match key_event.code {
+            event::Event::Key(e) if e.kind == KeyEventKind::Press => match self.current_view {
+                CurrentView::Main => match self.mode {
+                    Mode::Normal => match e.code {
+                        KeyCode::Char('q') => self.quit(),
+                        KeyCode::Char('/') => self.show_search(),
+                        KeyCode::Char('?') => self.toggle_keymaps_menu(),
+                        KeyCode::Char('j') | KeyCode::Down => self.select_next(),
+                        KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
+                        KeyCode::Enter => self.play(self.selected_track_id),
+                        KeyCode::Char(' ') => self.pause_play(),
+                        KeyCode::Char('n') => self.play_next(),
+                        KeyCode::Char('p') => self.play_prev(),
+                        KeyCode::Char('+' | '=') => self.player.volume_up(),
+                        KeyCode::Char('-') => self.player.volume_down(),
+                        KeyCode::Char('s') => self.toggle_shuffle(),
+                        KeyCode::Char('r') => self.player.toggle_repeat(),
+                        KeyCode::Right if e.modifiers == KeyModifiers::CONTROL => {
+                            self.seek_forward();
+                        }
+                        KeyCode::Left if e.modifiers == KeyModifiers::CONTROL => {
+                            self.seek_backwards();
+                        }
+                        _ => {}
+                    },
+                    Mode::Search => match e.code {
                         KeyCode::Esc => {
                             self.search.reset();
+                            self.mode = Mode::Normal;
                             self.apply_filter_if_stale();
                             self.reshuffle();
                         }
                         KeyCode::Enter => {
-                            self.search.set_active(false);
+                            self.mode = Mode::Normal;
                             self.apply_filter_if_stale();
                             self.reshuffle();
                         }
@@ -134,27 +175,15 @@ impl App {
                             self.search.handle_event(&event);
                             self.apply_filter_if_stale();
                         }
-                    }
-                } else {
-                    match key_event.code {
-                        KeyCode::Char('q') => self.quit(),
-                        KeyCode::Char('j') | KeyCode::Down => self.select_next(),
-                        KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
-                        KeyCode::Char('n') => self.play_next(),
-                        KeyCode::Char('p') => self.play_prev(),
-                        KeyCode::Char(' ') => self.toggle(),
-                        KeyCode::Char('s') => self.toggle_shuffle(),
-                        KeyCode::Char('r') => self.player.toggle_repeat(),
-                        KeyCode::Char('+') | KeyCode::Char('=') => self.player.volume_up(),
-                        KeyCode::Char('-') => self.player.volume_down(),
-                        KeyCode::Char('/') => self.search.set_active(true),
-                        KeyCode::Enter => self.play(self.selected_track_id),
-                        KeyCode::Right => self.seek_forward(),
-                        KeyCode::Left => self.seek_backward(),
-                        _ => {}
-                    }
-                }
-            }
+                    },
+                },
+                CurrentView::Keymaps => match e.code {
+                    KeyCode::Esc | KeyCode::Char('?') => self.toggle_keymaps_menu(),
+                    KeyCode::Char('j') | KeyCode::Down => self.keymaps_list_state.select_next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.keymaps_list_state.select_previous(),
+                    _ => {}
+                },
+            },
             event::Event::Resize(columns, _) => {
                 self.column_widths = ui::compute_column_widths(columns);
             }
@@ -181,6 +210,17 @@ impl App {
 
     fn quit(&mut self) {
         self.should_quit = true;
+    }
+
+    fn show_search(&mut self) {
+        self.mode = Mode::Search;
+    }
+
+    fn toggle_keymaps_menu(&mut self) {
+        self.current_view = match self.current_view {
+            CurrentView::Keymaps => CurrentView::Main,
+            CurrentView::Main => CurrentView::Keymaps,
+        }
     }
 
     fn select_next(&mut self) {
@@ -298,7 +338,7 @@ impl App {
     }
 
     /// Restarts the current track if player is stopped, otherwise toggles the playback.
-    fn toggle(&mut self) {
+    fn pause_play(&mut self) {
         if self.player.status == PlayerStatus::Stopped {
             self.play(self.player.current_track_id);
         } else {
@@ -334,7 +374,7 @@ impl App {
         self.player.seek_forward(track);
     }
 
-    fn seek_backward(&mut self) {
+    fn seek_backwards(&mut self) {
         let Some(id) = self.player.current_track_id else {
             return;
         };

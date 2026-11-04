@@ -8,18 +8,19 @@ pub mod truncate;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Flex, Layout, Rect},
-    style::{Style, Stylize},
+    style::{Modifier, Style, Stylize},
     symbols,
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Gauge, HighlightSpacing, LineGauge, Padding, Paragraph, Row, Table,
+        Block, BorderType, Clear, Gauge, HighlightSpacing, LineGauge, List, Padding, Paragraph,
+        Row, Table,
     },
 };
 
-use crate::player::PlayerStatus;
 use crate::ui::truncate::truncate;
 use crate::{app::App, track::Track};
-use crate::{config::config_file_path, ui::keymaps::Keymap};
+use crate::{app::CurrentView, config::config_file_path};
+use crate::{app::Mode, player::PlayerStatus};
 
 const DELIMITER: &str = "•";
 const SEARCH_PREFIX: &str = "Search: ";
@@ -36,30 +37,30 @@ pub fn compute_column_widths(width: u16) -> Vec<usize> {
 
 pub fn render(frame: &mut Frame, app: &mut App) {
     let theme = app.config.theme();
-    let constraints: &[Constraint] = if app.config.are_keymaps_hidden() {
-        &constraints::APP_WITHOUT_KEYMAPS
-    } else {
-        &constraints::APP
-    };
-    let rects = Layout::vertical(constraints).split(frame.area());
-    let block = Block::new()
+    let rects = Layout::vertical(constraints::APP).split(frame.area());
+    let mut block = Block::new()
         .style(Style::new().bg(theme.background))
         .fg(theme.foreground);
+    if app.current_view == CurrentView::Keymaps {
+        block = block.add_modifier(Modifier::DIM);
+    }
     // Render an empty block to apply a global background
     frame.render_widget(block, frame.area());
 
-    if app.search.is_active() {
+    if app.mode == Mode::Search {
         render_search(app, frame, rects[0]);
-        render_keymaps(app, frame, rects[3], &keymaps::SEARCH);
     } else {
         render_status_line(app, frame, rects[0]);
-        render_keymaps(app, frame, rects[3], &keymaps::PRIMARY);
     }
 
     if app.library.is_empty() {
         render_library_placeholder(app, frame, rects[1]);
     } else {
         render_library(app, frame, rects[1]);
+    }
+
+    if app.current_view == CurrentView::Keymaps {
+        render_keymaps(app, frame);
     }
 
     render_player(app, frame, rects[2]);
@@ -107,6 +108,7 @@ pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
 fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
     let block = Block::new().padding(Padding::horizontal(2));
+    let chunks = Layout::horizontal(constraints::STATUS_LINE).split(block.inner(area));
     let total = format::total_duration(app.library.total_duration);
     let len = app.library.len();
     let visible_len = app.visible_track_ids().len();
@@ -129,8 +131,11 @@ fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
         spans.push(Span::raw(format!("searching: \"{}\"", app.search.query())));
     }
 
-    let text = Line::from(spans);
-    frame.render_widget(Paragraph::new(text).block(block), area);
+    let line = Line::from(spans);
+    let keymaps = Span::styled("Keymaps: ?", Style::new().fg(theme.accent)).bold();
+
+    frame.render_widget(Paragraph::new(line), chunks[0]);
+    frame.render_widget(keymaps, chunks[1]);
 }
 
 fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
@@ -257,23 +262,71 @@ fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, are
     frame.render_widget(volume, rects[3]);
 }
 
-fn render_keymaps(app: &App, frame: &mut Frame, area: Rect, keymaps: &[Keymap]) {
+fn render_keymaps(app: &mut App, frame: &mut Frame) {
     let theme = app.config.theme();
-    let block = Block::new().padding(Padding::horizontal(2));
+    let area = frame.area();
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title(" Keymaps ".bold())
+        .bg(theme.background)
+        .padding(Padding::horizontal(1));
+    let area = area.centered(Constraint::Length(60), Constraint::Percentage(50));
 
-    let mut spans = Vec::new();
+    frame.render_widget(Clear, area);
 
-    for (index, &(keys, label)) in keymaps.iter().enumerate() {
-        if index > 0 {
-            spans.push(Span::raw(" | "));
-        }
-        spans.push(Span::styled("[", Style::new().dim()));
-        spans.push(Span::styled(keys, Style::new().fg(theme.accent).bold()));
-        spans.push(Span::styled("] ", Style::new().dim()));
-        spans.push(Span::raw(label));
+    let mut lines = Vec::<Line>::new();
+
+    lines.push(Line::from(vec![
+        "             ".into(),
+        "─── ".fg(theme.accent),
+        "General".bold(),
+    ]));
+
+    for (key, desc) in keymaps::GENERAL {
+        lines.push(Line::from(vec![
+            key.fg(theme.accent),
+            " ".into(),
+            desc.into(),
+        ]));
     }
 
-    frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        "             ".into(),
+        "─── ".fg(theme.accent),
+        "Playback".bold(),
+    ]));
+
+    for (key, desc) in keymaps::PLAYBACK {
+        lines.push(Line::from(vec![
+            key.fg(theme.accent),
+            " ".into(),
+            desc.into(),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        "             ".into(),
+        "─── ".fg(theme.accent),
+        "Search".bold(),
+    ]));
+
+    for (key, desc) in keymaps::SEARCH {
+        lines.push(Line::from(vec![
+            key.fg(theme.accent),
+            " ".into(),
+            desc.into(),
+        ]));
+    }
+
+    let style = Style::new()
+        .bg(theme.selection_background)
+        .fg(theme.selection_foreground);
+
+    let list = List::new(lines).block(block).highlight_style(style);
+
+    frame.render_stateful_widget(list, area, &mut app.keymaps_list_state);
 }
 
 fn render_search(app: &App, frame: &mut Frame, area: Rect) {

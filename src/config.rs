@@ -13,8 +13,6 @@ pub struct Config {
     music_directory: Option<PathBuf>,
     #[serde(default)]
     theme: Theme,
-    #[serde(default)]
-    hide_keymaps: bool,
 }
 
 impl Config {
@@ -24,10 +22,6 @@ impl Config {
 
     pub fn theme(&self) -> &Theme {
         &self.theme
-    }
-
-    pub fn are_keymaps_hidden(&self) -> bool {
-        self.hide_keymaps
     }
 }
 
