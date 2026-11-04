@@ -13,8 +13,9 @@ pub fn total_duration(duration: Duration) -> String {
     let hours = duration.as_secs() / 60 / 60;
 
     match hours {
-        0 => format!("{minutes:02}m"),
-        _ => format!("{hours}h {minutes:02}m"),
+        0 => format!("{minutes:02} minutes"),
+        1 => format!("{hours} h {minutes:02} minutes"),
+        _ => format!("{hours} hrs {minutes:02} minutes"),
     }
 }
 
@@ -38,9 +39,10 @@ mod tests {
 
     #[test]
     fn formats_total_duration() {
-        assert_eq!(total_duration(Duration::from_mins(5)), "05m");
-        assert_eq!(total_duration(Duration::from_mins(50)), "50m");
-        assert_eq!(total_duration(Duration::from_mins(100)), "1h 40m");
+        assert_eq!(total_duration(Duration::from_mins(5)), "05 minutes");
+        assert_eq!(total_duration(Duration::from_mins(50)), "50 minutes");
+        assert_eq!(total_duration(Duration::from_mins(100)), "1 h 40 minutes");
+        assert_eq!(total_duration(Duration::from_mins(200)), "3 hrs 20 minutes");
     }
 
     #[test]

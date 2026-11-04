@@ -119,11 +119,11 @@ fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
         "Library: ",
         Style::new().bold().fg(theme.accent),
     ));
-    spans.push(Span::raw(format!("{len} tracks {DELIMITER} {total} total")));
+    spans.push(Span::raw(format!("{len} tracks {DELIMITER} {total}")));
 
     if let Some(s) = app.table_state.selected() {
         spans.push(Span::raw(format!(" {DELIMITER} ")));
-        spans.push(Span::raw(format!("selected {}/{}", s + 1, visible_len)));
+        spans.push(Span::raw(format!("{} of {}", s + 1, visible_len)));
     }
 
     if !app.search.is_empty() {
