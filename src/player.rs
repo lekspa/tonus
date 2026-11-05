@@ -40,9 +40,8 @@ impl Display for PlayerStatus {
 impl Display for Repeat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Off => write!(f, "off"),
-            Self::All => write!(f, "all"),
-            Self::One => write!(f, "one"),
+            Self::Off | Self::All => write!(f, "R "),
+            Self::One => write!(f, "R1"),
         }
     }
 }

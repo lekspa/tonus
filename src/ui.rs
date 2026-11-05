@@ -7,16 +7,15 @@ pub mod truncate;
 
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Flex, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     style::{Modifier, Style, Stylize},
-    symbols,
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Clear, Gauge, HighlightSpacing, LineGauge, List, Padding, Paragraph,
-        Row, Table,
+        Block, BorderType, Clear, Gauge, HighlightSpacing, List, Padding, Paragraph, Row, Table,
     },
 };
 
+use crate::player::Repeat;
 use crate::ui::truncate::truncate;
 use crate::{app::App, track::Track};
 use crate::{app::CurrentView, config::config_file_path};
@@ -63,7 +62,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         render_keymaps(app, frame);
     }
 
-    render_player(app, frame, rects[2]);
+    render_playback(app, frame, rects[2]);
 }
 
 pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
@@ -198,20 +197,20 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_stateful_widget(table, area, &mut app.table_state);
 }
 
-fn render_player(app: &App, frame: &mut Frame, area: Rect) {
+fn render_playback(app: &App, frame: &mut Frame, area: Rect) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .padding(Padding::horizontal(1));
-    let rects = Layout::vertical(constraints::PLAYER).split(block.inner(area));
+    let rects = Layout::vertical(constraints::PLAYBACK).split(block.inner(area));
     let track = app.current_track();
 
     frame.render_widget(block, area);
 
-    render_progress(track, app, frame, rects[0]);
-    render_current_track(track, app, frame, rects[1]);
+    render_progress_gauge(track, app, frame, rects[0]);
+    render_playback_data(track, app, frame, rects[1]);
 }
 
-fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
+fn render_progress_gauge(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
     let elapsed = app.player.timer.elapsed();
     let (ratio, label) = track.map_or_else(
@@ -235,31 +234,33 @@ fn render_progress(track: Option<&Track>, app: &App, frame: &mut Frame, area: Re
     frame.render_widget(progress, area);
 }
 
-fn render_current_track(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
+fn render_playback_data(track: Option<&Track>, app: &App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
-    let rects = Layout::horizontal(constraints::CURRENT_TRACK)
-        .flex(Flex::SpaceBetween)
-        .split(area);
+    let rects = Layout::horizontal(constraints::PLAYBACK_DATA).split(area);
 
     let status = Paragraph::new(current_track_text(app.player.status, track));
 
-    let repeat = Span::raw(format!("Repeat: {} {DELIMITER} ", app.player.repeat));
+    let repeat_style = match app.player.repeat {
+        Repeat::Off => Style::new().dim(),
+        _ => Style::new().fg(theme.accent),
+    };
 
-    let shuffle = Span::raw(format!(
-        "Shuffle: {} {DELIMITER}",
-        if app.player.shuffle { "on " } else { "off" }
-    ));
+    let shuffle_style = if app.player.shuffle {
+        Style::new().fg(theme.accent)
+    } else {
+        Style::new().dim()
+    };
 
-    let volume = LineGauge::default()
-        .label(format!("Volume: {}%", app.player.volume()))
-        .filled_style(Style::new().fg(theme.accent))
-        .filled_symbol(symbols::line::HORIZONTAL)
-        .ratio(f64::from(app.player.volume()) / 100.0);
+    let line = Line::from(vec![
+        Span::styled(format!("{}", app.player.repeat), repeat_style),
+        Span::raw(" "),
+        Span::styled("S", shuffle_style),
+        Span::raw(format!(" {DELIMITER} ")),
+        Span::raw(format!("Volume:{:>3}%", app.player.volume())),
+    ]);
 
     frame.render_widget(status, rects[0]);
-    frame.render_widget(repeat, rects[1]);
-    frame.render_widget(shuffle, rects[2]);
-    frame.render_widget(volume, rects[3]);
+    frame.render_widget(line, rects[1]);
 }
 
 fn render_keymaps(app: &mut App, frame: &mut Frame) {
