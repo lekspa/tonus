@@ -22,7 +22,7 @@ use crate::{app::CurrentView, config::config_file_path};
 use crate::{app::Mode, player::PlayerStatus};
 
 const DELIMITER: &str = "•";
-const SEARCH_PREFIX: &str = "Search: ";
+const SEARCH_PREFIX: &str = "/";
 
 /// Computes track list table column widths exluding horizontal table borders(2 columns)
 pub fn compute_column_widths(width: u16) -> Vec<usize> {
@@ -127,7 +127,11 @@ fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
 
     if !app.search.is_empty() {
         spans.push(Span::raw(format!(" {DELIMITER} ")));
-        spans.push(Span::raw(format!("searching: \"{}\"", app.search.query())));
+        spans.push(Span::raw(format!(
+            "{}{}",
+            SEARCH_PREFIX,
+            app.search.query()
+        )));
     }
 
     let line = Line::from(spans);
