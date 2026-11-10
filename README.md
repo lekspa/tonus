@@ -1,3 +1,5 @@
+![Made with VHS](https://vhs.charm.sh/vhs-3tLiFnxbJjlnyxJmBDrrgv.gif)
+
 Tonus is a minimal terminal music player designed for offline playback.
 It was developed primarily for Linux. Other platforms are untested.
 
