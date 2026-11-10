@@ -1,10 +1,10 @@
 Tonus is a minimal terminal music player designed for offline playback.
 It was developed primarily for Linux. Other platforms are untested.
 
-#### Prerequisites 
+### Prerequisites 
 Requires Rust version 1.85 or newer.
 
-#### Features
+### Features
 - Vim style navigation
 - Custom themes
 - Basic search
@@ -12,24 +12,24 @@ Requires Rust version 1.85 or newer.
 - Playback seeking
 - Random playback
 
-#### Installation
+### Installation
 ```bash
 cargo install --locked tonus
 ```
 
-#### Building from source
+### Building from source
 ```bash
 git clone https://codeberg.org/olpa/tonus
 cargo build --release
 ```
 
-#### Running
-To run tonus, execute `tonus` in a shell.
+### Running
+To run the player, execute `tonus` in a shell.
 
-#### Keymaps
+### Keymaps
 Tonus runs with a default set of keymaps.
 
-##### General
+#### General
 
 | Key          | Description       |
 | ------------ | ----------------- |
@@ -38,7 +38,7 @@ Tonus runs with a default set of keymaps.
 | `/`          | Search            |
 | `q`          | Quit              |
 
-##### Playback
+#### Playback
 
 | Key          | Description         |
 | ------------ | ------------------- |
@@ -53,7 +53,7 @@ Tonus runs with a default set of keymaps.
 | `Ctrl-Right` | Seek forward        |
 | `Ctrl-Left`  | Seek backwards      |
 
-##### Search
+#### Search
 
 | Key          | Description       |
 | ------------ | ----------------- |
@@ -62,11 +62,11 @@ Tonus runs with a default set of keymaps.
 | `Left`       | Move cursor left  |
 | `Right`      | Move cursor right |
 
-#### Configuration
+### Configuration
 The configuration file should be created at `$HOME/.config/tonus.toml`.
 An example file can be found in `example` directory in this repository.
 
-#### Themes
+### Themes
 Theme can be customized by changing the `theme` section of configuration file.
 The value for each field should be specified as hex. Alternatively, the following
 colors can used.
@@ -98,15 +98,17 @@ colors can used.
 | selection_foreground | Selected row text color         |
 | accent               | Accent color                    |
 | on_accent            | Text color on accent background |
+| success              | Success text color              |
+| failure              | Failure text color              |
 
-#### CLI arguments
+### CLI arguments
 Tonus can be run with optional CLI arguments. Arguments have higher precedence over the configuration file.
 
 | Argument          | Description             |
 | ----------------- | ----------------------- |
 | --music-directory | Path to music directory |
 
-#### Logging
+### Logging
 Tonus will attempt to create `$HOME/.local/share/tonus/tonus.log` to store logs.
 Only events with a level of `INFO` of higher will be logged by default.
 To see all events, set `RUST_LOG` environment variable to `debug` or `trace`.

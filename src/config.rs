@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use crate::cli::Cli;
 use crate::ui::theme::Theme;
 
+pub const DEFAULT_CONFIG_LOCATION: &str = "~/.config/tonus/config.toml";
+
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default)]

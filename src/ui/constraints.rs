@@ -15,10 +15,16 @@ pub const APP: [Constraint; 3] = [
     Constraint::Fill(1),
     Constraint::Length(PLAYER_HEIGHT),
 ];
-pub const LIBRARY: [Constraint; 4] = [
+pub const LIBRARY_FULL: [Constraint; 4] = [
     Constraint::Min(TRACK_TITLE_WIDTH),
     Constraint::Min(TRACK_ARTIST_WIDTH),
     Constraint::Min(TRACK_ALBUM_WIDTH),
+    Constraint::Length(TRACK_DURATION_WIDTH),
+];
+pub const LIBRARY_MEDIUM: [Constraint; 4] = [
+    Constraint::Fill(4),
+    Constraint::Fill(3),
+    Constraint::Length(0),
     Constraint::Length(TRACK_DURATION_WIDTH),
 ];
 pub const PLAYBACK: [Constraint; 2] = [Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)];

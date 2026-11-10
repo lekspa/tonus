@@ -22,7 +22,7 @@ pub enum Mode {
 }
 
 #[derive(PartialEq, Eq)]
-pub enum CurrentView {
+pub enum View {
     Main,
     Keymaps,
 }
@@ -30,7 +30,7 @@ pub enum CurrentView {
 pub struct App {
     should_quit: bool,
     pub mode: Mode,
-    pub current_view: CurrentView,
+    pub view: View,
     #[allow(dead_code)]
     pub cli: Cli,
     pub config: Config,
@@ -49,7 +49,7 @@ impl App {
         Ok(Self {
             should_quit: false,
             mode: Mode::Normal,
-            current_view: CurrentView::Main,
+            view: View::Main,
             cli,
             config,
             library: Library::new(),
@@ -135,8 +135,8 @@ impl App {
         let event = event::read()?;
         trace!(?event);
         match event {
-            event::Event::Key(e) if e.kind == KeyEventKind::Press => match self.current_view {
-                CurrentView::Main => match self.mode {
+            event::Event::Key(e) if e.kind == KeyEventKind::Press => match self.view {
+                View::Main => match self.mode {
                     Mode::Normal => match e.code {
                         KeyCode::Char('q') => self.quit(),
                         KeyCode::Char('/') => self.show_search(),
@@ -177,7 +177,7 @@ impl App {
                         }
                     },
                 },
-                CurrentView::Keymaps => match e.code {
+                View::Keymaps => match e.code {
                     KeyCode::Esc | KeyCode::Char('?') => self.toggle_keymaps_menu(),
                     KeyCode::Char('j') | KeyCode::Down => self.keymaps_list_state.select_next(),
                     KeyCode::Char('k') | KeyCode::Up => self.keymaps_list_state.select_previous(),
@@ -217,9 +217,9 @@ impl App {
     }
 
     fn toggle_keymaps_menu(&mut self) {
-        self.current_view = match self.current_view {
-            CurrentView::Keymaps => CurrentView::Main,
-            CurrentView::Main => CurrentView::Keymaps,
+        self.view = match self.view {
+            View::Keymaps => View::Main,
+            View::Main => View::Keymaps,
         }
     }
 

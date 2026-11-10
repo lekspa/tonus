@@ -2,6 +2,18 @@ use super::color;
 use ratatui::style::Color;
 use serde::Deserialize;
 
+const DEFAULT_THEME: Theme = Theme {
+    background: color::COD_GRAY,
+    foreground: color::SILVER,
+    surface: color::MINE_SHAFT,
+    selection_background: color::ATHS_SPECIAL,
+    selection_foreground: color::COD_GRAY,
+    accent: color::FIERY_ORANGE,
+    on_accent: color::ATHS_SPECIAL,
+    success: Color::LightGreen,
+    failure: Color::LightRed,
+};
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Theme {
@@ -19,18 +31,14 @@ pub struct Theme {
     pub accent: Color,
     /// Text color on accent backgrounds
     pub on_accent: Color,
+    /// Success text color
+    pub success: Color,
+    /// Error text color
+    pub failure: Color,
 }
 
 impl Default for Theme {
     fn default() -> Self {
-        Self {
-            background: color::COD_GRAY,
-            foreground: color::SILVER,
-            surface: color::MINE_SHAFT,
-            selection_background: color::ATHS_SPECIAL,
-            selection_foreground: color::COD_GRAY,
-            accent: color::FIERY_ORANGE,
-            on_accent: color::ATHS_SPECIAL,
-        }
+        DEFAULT_THEME
     }
 }

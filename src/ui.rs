@@ -5,6 +5,13 @@ mod keymaps;
 pub mod theme;
 pub mod truncate;
 
+use crate::config::DEFAULT_CONFIG_LOCATION;
+use crate::library::SUPPORTED_CODECS;
+use crate::player::Repeat;
+use crate::ui::truncate::truncate;
+use crate::{app::App, track::Track};
+use crate::{app::Mode, player::PlayerStatus};
+use crate::{app::View, config::config_file_path};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Layout, Rect},
@@ -14,20 +21,28 @@ use ratatui::{
         Block, BorderType, Clear, Gauge, HighlightSpacing, List, Padding, Paragraph, Row, Table,
     },
 };
+use unicode_width::UnicodeWidthStr;
 
-use crate::player::Repeat;
-use crate::ui::truncate::truncate;
-use crate::{app::App, track::Track};
-use crate::{app::CurrentView, config::config_file_path};
-use crate::{app::Mode, player::PlayerStatus};
+/// Minimum terminal height to render all widgets
+const MIN_HEIGHT: u16 = 24;
+/// Minimum terminal width to render all widgets
+const MIN_WIDTH: u16 = 80;
+/// Minimum terminal width to render the full layout
+const BREAKPOINT: u16 = 100;
+/// Default block padding
+const PADDING: u16 = 2;
 
 const DELIMITER: &str = "•";
 const SEARCH_PREFIX: &str = "/";
+// Last label should be shifted to right respecting the padding
+const TABLE_HEADER: [&str; 4] = ["Title", "Artist", "Album", "  Time"];
 
-/// Computes track list table column widths exluding horizontal table borders(2 columns)
+/// Returns a list containing width for every library widget column.
+/// Block padding (2 cells) and column padding (2 cells) are excluded.
 pub fn compute_column_widths(width: u16) -> Vec<usize> {
-    let area = Rect::new(0, 0, width, 1);
-    Layout::horizontal(constraints::LIBRARY)
+    let area = Rect::new(0, 0, width - PADDING, 1);
+    let constraints = library_constraints(width);
+    Layout::horizontal(constraints)
         .split(area)
         .iter()
         .map(|rect| rect.width.saturating_sub(2) as usize)
@@ -36,15 +51,20 @@ pub fn compute_column_widths(width: u16) -> Vec<usize> {
 
 pub fn render(frame: &mut Frame, app: &mut App) {
     let theme = app.config.theme();
-    let rects = Layout::vertical(constraints::APP).split(frame.area());
-    let mut block = Block::new()
-        .style(Style::new().bg(theme.background))
-        .fg(theme.foreground);
-    if app.current_view == CurrentView::Keymaps {
+    let area = frame.area();
+    let rects = Layout::vertical(constraints::APP).split(area);
+    let mut block = Block::new().bg(theme.background).fg(theme.foreground);
+
+    if app.view == View::Keymaps {
         block = block.add_modifier(Modifier::DIM);
     }
-    // Render an empty block to apply a global background
-    frame.render_widget(block, frame.area());
+
+    frame.render_widget(block, area);
+
+    if area.width < MIN_WIDTH || area.height < MIN_HEIGHT {
+        render_terminal_size(frame, app);
+        return;
+    }
 
     if app.mode == Mode::Search {
         render_search(app, frame, rects[0]);
@@ -53,12 +73,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     }
 
     if app.library.is_empty() {
-        render_library_placeholder(app, frame, rects[1]);
+        render_placeholder(frame, rects[1]);
     } else {
         render_library(app, frame, rects[1]);
     }
 
-    if app.current_view == CurrentView::Keymaps {
+    if app.view == View::Keymaps {
         render_keymaps(app, frame);
     }
 
@@ -68,33 +88,27 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
     let theme = app.config.theme();
     let area = frame.area();
-    let centered_area = area.centered_vertically(Constraint::Length(7));
-    let block = Block::bordered().border_type(BorderType::Rounded);
-    let config_file = config_file_path().unwrap_or_else(|| "~/.config/tonus/config.toml".into());
+    let centered_area = area.centered_vertically(Constraint::Length(6));
+    let block = Block::new().bg(theme.background).fg(theme.foreground);
+
+    if area.width < MIN_WIDTH || area.height < MIN_HEIGHT {
+        render_terminal_size(frame, app);
+        return;
+    }
+
+    let path = config_file_path().unwrap_or_else(|| DEFAULT_CONFIG_LOCATION.into());
 
     let lines = vec![
-        Line::from(Span::styled(
-            "Welcome to Tonus!",
-            Style::new().bold().fg(theme.accent),
-        )),
-        Line::from(""),
-        Line::from("Player could not find your music directory."),
-        Line::from(vec![
-            Span::raw("Add this to your config: "),
-            Span::styled(
-                "music_directory = \"/path/to/music\"",
-                Style::new().bold().fg(theme.accent),
-            ),
-            Span::raw("."),
-        ]),
-        Line::from(vec![
-            Span::raw("Config file: "),
-            Span::styled(config_file.display().to_string(), Style::new().italic()),
-        ]),
+        Line::from("Music directory is not available").bold(),
+        Line::from("Configure it to point to an existing path:").bold(),
+        Line::from("music_directory = \"/path/to/music\"".fg(theme.accent)).bold(),
+        Line::from(path.display().to_string()),
         Line::from(""),
         Line::from(vec![
-            Span::styled("[q]", Style::new().bold()),
-            Span::raw(" Quit"),
+            "[".dim(),
+            "q".fg(theme.accent).bold(),
+            "]".dim(),
+            " Quit".bold(),
         ]),
     ];
 
@@ -105,10 +119,17 @@ pub fn render_welcome_screen(frame: &mut Frame, app: &App) {
 }
 
 fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
+    let block = Block::new().padding(Padding::horizontal(PADDING));
+    let rects = Layout::horizontal(constraints::STATUS_LINE).split(block.inner(area));
+
     let theme = app.config.theme();
-    let block = Block::new().padding(Padding::horizontal(2));
-    let chunks = Layout::horizontal(constraints::STATUS_LINE).split(block.inner(area));
-    let total = format::total_duration(app.library.total_duration);
+
+    let duration = if area.width < BREAKPOINT {
+        format::total_duration_compact(app.library.total_duration)
+    } else {
+        format::total_duration(app.library.total_duration)
+    };
+
     let len = app.library.len();
     let visible_len = app.visible_track_ids().len();
 
@@ -118,7 +139,7 @@ fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
         "Library: ",
         Style::new().bold().fg(theme.accent),
     ));
-    spans.push(Span::raw(format!("{len} tracks {DELIMITER} {total}")));
+    spans.push(Span::raw(format!("{len} tracks {DELIMITER} {duration}")));
 
     if let Some(s) = app.table_state.selected() {
         spans.push(Span::raw(format!(" {DELIMITER} ")));
@@ -127,18 +148,23 @@ fn render_status_line(app: &App, frame: &mut Frame, area: Rect) {
 
     if !app.search.is_empty() {
         spans.push(Span::raw(format!(" {DELIMITER} ")));
-        spans.push(Span::raw(format!(
-            "{}{}",
-            SEARCH_PREFIX,
-            app.search.query()
+        // Compute available space for rendering the search query.
+        // Truncate the string if there is not enough space.
+        let spacing = 1;
+        let width: usize = spans.iter().map(UnicodeWidthStr::width).sum();
+        let free_space = rects[0].width as usize - width - spacing;
+
+        spans.push(Span::raw(truncate(
+            &format!("{}{}", SEARCH_PREFIX, app.search.query()),
+            free_space,
         )));
     }
 
     let line = Line::from(spans);
-    let keymaps = Span::styled("Keymaps: ?", Style::new().fg(theme.accent)).bold();
+    let keymaps = Span::styled("Keymaps: ?", Style::new().fg(theme.accent).bold());
 
-    frame.render_widget(Paragraph::new(line), chunks[0]);
-    frame.render_widget(keymaps, chunks[1]);
+    frame.render_widget(Paragraph::new(line), rects[0]);
+    frame.render_widget(keymaps, rects[1]);
 }
 
 fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
@@ -147,7 +173,7 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
         truncate(&track.title, app.column_widths[0]),
         truncate(&track.artist, app.column_widths[1]),
         truncate(&track.album, app.column_widths[2]),
-        format!("{:>6}", format::duration(track.duration)),
+        format!("{:>6}", format::track_duration(track.duration)),
     ];
 
     let style = match app.index_of_track(app.player.current_track_id) {
@@ -158,16 +184,20 @@ fn table_row<'a>(index: usize, track: &Track, app: &App) -> Row<'a> {
     Row::new(cells).style(style)
 }
 
-fn render_library_placeholder(_app: &App, frame: &mut Frame, area: Rect) {
+fn render_placeholder(frame: &mut Frame, area: Rect) {
     let block = Block::bordered().border_type(BorderType::Rounded);
     let centered_area = area.centered_vertically(Constraint::Length(2));
 
     let lines = vec![
         Line::from("No supported audio files were found in configured music directory."),
-        Line::from("Supported formats: mp3, mp4, wav, ogg, flac."),
+        Line::from(vec![
+            "Supported formats: ".into(),
+            SUPPORTED_CODECS.join(", ").bold(),
+            ".".into(),
+        ]),
     ];
 
-    let paragraph = Paragraph::new(lines).alignment(Alignment::Center).bold();
+    let paragraph = Paragraph::new(lines).alignment(Alignment::Center);
 
     frame.render_widget(block, area);
     frame.render_widget(paragraph, centered_area);
@@ -175,8 +205,6 @@ fn render_library_placeholder(_app: &App, frame: &mut Frame, area: Rect) {
 
 fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
-    let header_style = Style::new().bold().bg(theme.surface);
-    let header = Row::new(["Title", "Artist", "Album", "Length"]).style(header_style);
 
     let highlight_fg = if app.selected_track_id == app.player.current_track_id {
         theme.accent
@@ -191,9 +219,9 @@ fn render_library(app: &mut App, frame: &mut Frame, area: Rect) {
         .filter_map(|(idx, &id)| app.library.get_track(id).map(|t| (idx, t)))
         .map(|(index, track)| table_row(index, track, app));
 
-    let table = Table::new(rows, constraints::LIBRARY)
+    let table = Table::new(rows, library_constraints(area.width))
         .block(Block::bordered().border_type(BorderType::Rounded))
-        .header(header)
+        .header(Row::new(TABLE_HEADER).bold().bg(theme.surface))
         .highlight_symbol(">")
         .highlight_spacing(HighlightSpacing::Always)
         .row_highlight_style(Style::new().bg(theme.selection_background).fg(highlight_fg));
@@ -337,10 +365,9 @@ fn render_keymaps(app: &mut App, frame: &mut Frame) {
 fn render_search(app: &App, frame: &mut Frame, area: Rect) {
     let theme = app.config.theme();
     // Terminal dimensions never exceed u16::MAX (65535 pixels)
-    let block_padding = 2;
     #[allow(clippy::cast_possible_truncation)]
-    let offset = (SEARCH_PREFIX.len() as u16) + block_padding;
-    let width = area.width.saturating_sub(offset + block_padding);
+    let offset = (SEARCH_PREFIX.len() as u16) + PADDING;
+    let width = area.width.saturating_sub(offset + PADDING);
     let scroll = app.search.visual_scroll(width as usize);
 
     let text = Line::from(vec![
@@ -348,7 +375,7 @@ fn render_search(app: &App, frame: &mut Frame, area: Rect) {
         Span::raw(app.search.query()),
     ]);
 
-    let block = Block::new().padding(Padding::horizontal(2));
+    let block = Block::new().padding(Padding::horizontal(PADDING));
     // Scroll is bounded by terminal width, which fits in u16
     #[allow(clippy::cast_possible_truncation)]
     let input = Paragraph::new(text).scroll((0, scroll as u16)).block(block);
@@ -367,4 +394,43 @@ fn current_track_text(status: PlayerStatus, track: Option<&Track>) -> String {
         || String::from("○ Select a track to play"),
         |t| format!("{} {} - {}", status, t.title, t.artist),
     )
+}
+
+fn render_terminal_size(frame: &mut Frame, app: &App) {
+    let area = frame.area();
+    let centered_area = area.centered_vertically(Constraint::Length(5));
+
+    let theme = app.config.theme();
+    let status_color = |success: bool| {
+        if success {
+            theme.success
+        } else {
+            theme.failure
+        }
+    };
+
+    let lines = vec![
+        Line::from("Terminal is too small:"),
+        Line::from(vec![
+            "Width = ".into(),
+            area.width.fg(status_color(area.width > MIN_WIDTH)),
+            " ".into(),
+            "Height = ".into(),
+            area.height.fg(status_color(area.height > MIN_HEIGHT)),
+        ]),
+        Line::from(""),
+        Line::from("Minimum required terminal size:"),
+        Line::from(format!("Width = {MIN_WIDTH} Height = {MIN_HEIGHT}")),
+    ];
+    let paragraph = Paragraph::new(lines).alignment(Alignment::Center).bold();
+
+    frame.render_widget(paragraph, centered_area);
+}
+
+fn library_constraints(width: u16) -> [Constraint; 4] {
+    if width < BREAKPOINT {
+        constraints::LIBRARY_MEDIUM
+    } else {
+        constraints::LIBRARY_FULL
+    }
 }

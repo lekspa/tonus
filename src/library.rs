@@ -6,7 +6,7 @@ use std::result::Result;
 use std::time::Duration;
 use walkdir::WalkDir;
 
-const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
+pub const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
 
 #[derive(Default)]
 pub struct Library {
