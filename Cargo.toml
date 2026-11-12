@@ -3,9 +3,20 @@ name = "tonus"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Minimal terminal music player for offline playback."
-repository = "https://codeberg.org/olpa/tonus"
+description = "Minimal terminal music player for offline playback"
+repository = "https://github.com/lekspa/tonus"
 readme = "README.md"
+categories = [
+    "multimedia::audio",
+    "command-line-utilities",
+]
+keywords = [
+    "tui",
+    "music",
+    "player",
+    "terminal",
+    "audio",
+]
 
 [dependencies]
 ratatui = { version = "0.30.2", features = ["serde"] }
@@ -32,7 +43,7 @@ unwrap_used = "deny"
 expect_used = "deny"
 
 [profile.release]
-codegen-units = 1 # Allows compiler to perform better optimization.
-lto = true # Enables Link-time Optimization.
-opt-level = "s" # Prioritizes small binary size. Use `3` if you prefer speed.
-strip = true # Ensures debug symbols are removed.
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

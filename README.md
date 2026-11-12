@@ -21,7 +21,7 @@ cargo install --locked tonus
 
 ### Building from source
 ```bash
-git clone https://codeberg.org/olpa/tonus
+git clone https://github.com/lekspa/tonus
 cargo build --release
 ```
 
