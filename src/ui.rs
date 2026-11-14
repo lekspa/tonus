@@ -6,7 +6,7 @@ pub mod theme;
 pub mod truncate;
 
 use crate::config::DEFAULT_CONFIG_LOCATION;
-use crate::library::SUPPORTED_CODECS;
+use crate::library::SUPPORTED_EXTENSIONS;
 use crate::player::Repeat;
 use crate::ui::truncate::truncate;
 use crate::{app::App, track::Track};
@@ -192,7 +192,7 @@ fn render_placeholder(frame: &mut Frame, area: Rect) {
         Line::from("No supported audio files were found in configured music directory."),
         Line::from(vec![
             "Supported formats: ".into(),
-            SUPPORTED_CODECS.join(", ").bold(),
+            SUPPORTED_EXTENSIONS.join(", ").bold(),
             ".".into(),
         ]),
     ];

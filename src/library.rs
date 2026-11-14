@@ -6,7 +6,7 @@ use std::result::Result;
 use std::time::Duration;
 use walkdir::WalkDir;
 
-pub const SUPPORTED_CODECS: [&str; 5] = ["mp3", "mp4", "wav", "ogg", "flac"];
+pub const SUPPORTED_EXTENSIONS: [&str; 6] = ["mp3", "mp4", "m4a", "wav", "ogg", "flac"];
 
 #[derive(Default)]
 pub struct Library {
@@ -64,7 +64,7 @@ impl Library {
 fn is_supported_codec(file: &Path) -> bool {
     file.extension()
         .and_then(OsStr::to_str)
-        .is_some_and(|extension| SUPPORTED_CODECS.contains(&extension))
+        .is_some_and(|extension| SUPPORTED_EXTENSIONS.contains(&extension))
 }
 
 fn scan(path: &Path) -> Vec<PathBuf> {
