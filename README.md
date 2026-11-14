@@ -1,12 +1,16 @@
+# Tonus
+
 ![Made with VHS](https://vhs.charm.sh/vhs-3tLiFnxbJjlnyxJmBDrrgv.gif)
 
 Tonus is a minimal terminal music player designed for offline playback.
 It was developed primarily for Linux. Other platforms are untested.
 
 ### Prerequisites 
+
 Requires Rust version 1.85 or newer.
 
 ### Features
+
 - Vim style navigation
 - Custom themes
 - Basic search
@@ -14,21 +18,36 @@ Requires Rust version 1.85 or newer.
 - Playback seeking
 - Random playback
 
+### Supported formats
+
+| Format |
+| ------ |
+| mp3    |
+| mp4    |
+| m4a    |
+| wav    |
+| ogg    |
+| flac   |
+
 ### Installation
+
 ```bash
 cargo install --locked tonus
 ```
 
 ### Building from source
+
 ```bash
 git clone https://github.com/lekspa/tonus
 cargo build --release
 ```
 
 ### Running
+
 To run the player, execute `tonus` in a shell.
 
 ### Keymaps
+
 Tonus runs with a default set of keymaps.
 
 #### General
@@ -65,10 +84,12 @@ Tonus runs with a default set of keymaps.
 | `Right`      | Move cursor right |
 
 ### Configuration
+
 The configuration file should be created at `$HOME/.config/tonus.toml`.
-An example file can be found in `example` directory in this repository.
+An example file can be found in [example](./example/tonus.toml) directory in this repository.
 
 ### Themes
+
 Theme can be customized by changing the `theme` section of configuration file.
 The value for each field should be specified as hex. Alternatively, the following
 colors can used.
@@ -104,6 +125,7 @@ colors can used.
 | failure              | Failure text color              |
 
 ### CLI arguments
+
 Tonus can be run with optional CLI arguments. Arguments have higher precedence over the configuration file.
 
 | Argument          | Description             |
@@ -111,7 +133,11 @@ Tonus can be run with optional CLI arguments. Arguments have higher precedence o
 | --music-directory | Path to music directory |
 
 ### Logging
+
 Tonus will attempt to create `$HOME/.local/share/tonus/tonus.log` to store logs.
 Only events with a level of `INFO` of higher will be logged by default.
 To see all events, set `RUST_LOG` environment variable to `debug` or `trace`.
 
+### License
+
+Tonus is released under the [MIT license](LICENSE).
