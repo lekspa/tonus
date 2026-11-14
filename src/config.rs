@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use crate::cli::Cli;
 use crate::ui::theme::Theme;
 
-pub const DEFAULT_CONFIG_LOCATION: &str = "~/.config/tonus/config.toml";
+pub const DEFAULT_CONFIG_LOCATION: &str = "~/.config/tonus/tonus.toml";
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct Config {
@@ -41,7 +41,7 @@ pub fn load(cli: Cli) -> Result<Config> {
 }
 
 pub fn config_file_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|path| path.join("tonus").join("config.toml"))
+    dirs::config_dir().map(|path| path.join("tonus").join("tonus.toml"))
 }
 
 fn load_config(path: Option<PathBuf>) -> Result<Config> {
