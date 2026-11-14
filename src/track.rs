@@ -1,10 +1,10 @@
-use color_eyre::eyre::Context;
 use lofty::prelude::*;
 use lofty::read_from_path;
 use std::hash::Hash;
 use std::hash::{DefaultHasher, Hasher};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tracing::warn;
 
 pub type TrackId = u64;
 
@@ -21,8 +21,13 @@ pub struct Track {
 impl Track {
     pub fn from_path(path: &PathBuf) -> Option<Self> {
         let id = path_to_id(path);
+        let file = read_from_path(path);
 
-        let tagged_file = read_from_path(path).wrap_err("failed to read track").ok()?;
+        if let Err(ref e) = file {
+            warn!("{path:?}: {e}");
+        }
+
+        let tagged_file = file.ok()?;
 
         let tag = tagged_file
             .primary_tag()
